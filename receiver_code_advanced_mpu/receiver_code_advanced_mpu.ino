@@ -42,10 +42,13 @@ BTS rightMotor = { 9, 36, 11, 12, 2, 3};
 #define MOTOR_PWM_FREQ 20000
 #define MOTOR_PWM_BITS 8
 #define MOTOR_DEADBAND 0.03f
+#define MOTOR_ACCEL_PWM_PER_SEC 650.0f
+#define MOTOR_DECEL_PWM_PER_SEC 1000.0f
+#define MOTOR_REVERSE_BRAKE_PWM_PER_SEC 1500.0f
 
 /* ================= LIGHTS ================= */
 #define PIXEL_PIN 8
-#define NUM_PIXELS 48
+#define NUM_PIXELS 16
 Adafruit_NeoPixel strip(NUM_PIXELS, PIXEL_PIN, NEO_GRB + NEO_KHZ800);
 
 const int BATTERY_ADC_PIN = -1;
@@ -91,9 +94,12 @@ volatile bool pendingPeer = false;
 
 int16_t lastLeftCommand = 0;
 int16_t lastRightCommand = 0;
+float currentLeftPwm = 0.0f;
+float currentRightPwm = 0.0f;
 uint32_t lastTelemetryMs = 0;
 uint32_t lastSerialMs = 0;
 uint32_t lastMpuMs = 0;
+uint32_t lastMotorRampMs = 0;
 
 uint16_t crc16Ccitt(const uint8_t *data, size_t len) {
   uint16_t crc = 0xFFFF;
@@ -194,8 +200,41 @@ void drive(BTS &motor, int speed) {
 void stopMotors() {
   drive(leftMotor, 0);
   drive(rightMotor, 0);
+  currentLeftPwm = 0;
+  currentRightPwm = 0;
   lastLeftCommand = 0;
   lastRightCommand = 0;
+}
+
+float rampPwm(float current, float target, float dt) {
+  if (fabs(current) < 1.0f) current = 0;
+  if (fabs(target) < 1.0f) target = 0;
+
+  float rate = (fabs(target) > fabs(current)) ? MOTOR_ACCEL_PWM_PER_SEC : MOTOR_DECEL_PWM_PER_SEC;
+  if (current != 0 && target != 0 && ((current > 0) != (target > 0))) {
+    target = 0;
+    rate = MOTOR_REVERSE_BRAKE_PWM_PER_SEC;
+  }
+
+  float maxStep = rate * dt;
+  float diff = target - current;
+  if (fabs(diff) <= maxStep) return target;
+  return current + (diff > 0 ? maxStep : -maxStep);
+}
+
+void updateMotorOutputs(int targetLeft, int targetRight) {
+  uint32_t now = millis();
+  float dt = lastMotorRampMs == 0 ? 0.02f : (now - lastMotorRampMs) / 1000.0f;
+  lastMotorRampMs = now;
+  if (dt > 0.1f) dt = 0.02f;
+
+  currentLeftPwm = rampPwm(currentLeftPwm, constrain(targetLeft, -255, 255), dt);
+  currentRightPwm = rampPwm(currentRightPwm, constrain(targetRight, -255, 255), dt);
+
+  lastLeftCommand = (int16_t)lroundf(currentLeftPwm);
+  lastRightCommand = (int16_t)lroundf(currentRightPwm);
+  drive(leftMotor, lastLeftCommand);
+  drive(rightMotor, lastRightCommand);
 }
 
 void setupMpu() {
@@ -244,11 +283,13 @@ void updateLights(float steering, bool linkOk, bool kill, bool lightsOn) {
   } else if (kill) {
     for (int i = 0; i < NUM_PIXELS; i++) strip.setPixelColor(i, strip.Color(70, 0, 0));
   } else if (lightsOn) {
-    for (int i = 16; i < 32; i++) strip.setPixelColor(i, strip.Color(150, 150, 150));
+    int centerStart = NUM_PIXELS / 3;
+    int centerEnd = (NUM_PIXELS * 2) / 3;
+    for (int i = centerStart; i < centerEnd; i++) strip.setPixelColor(i, strip.Color(150, 150, 150));
     if (steering > 0.15f) {
-      for (int i = 0; i < 16; i++) strip.setPixelColor(i, strip.Color(255, 60, 0));
+      for (int i = 0; i < centerStart; i++) strip.setPixelColor(i, strip.Color(255, 60, 0));
     } else if (steering < -0.15f) {
-      for (int i = 32; i < 48; i++) strip.setPixelColor(i, strip.Color(255, 60, 0));
+      for (int i = centerEnd; i < NUM_PIXELS; i++) strip.setPixelColor(i, strip.Color(255, 60, 0));
     }
   }
   strip.show();
@@ -397,10 +438,9 @@ void loop() {
       right /= maxMag;
     }
 
-    lastLeftCommand = (int16_t)(left * limit * 255.0f);
-    lastRightCommand = (int16_t)(right * limit * 255.0f);
-    drive(leftMotor, lastLeftCommand);
-    drive(rightMotor, lastRightCommand);
+    int targetLeft = (int)(left * limit * 255.0f);
+    int targetRight = (int)(right * limit * 255.0f);
+    updateMotorOutputs(targetLeft, targetRight);
   }
 
   updateLights(packet.steering / 1000.0f, linkOk, kill, lightsOn);

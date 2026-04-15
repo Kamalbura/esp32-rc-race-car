@@ -7,7 +7,7 @@
 #include <SPI.h>
 #include <Adafruit_ADS1X15.h>
 #include <Adafruit_GFX.h>
-#include <Adafruit_ST7789.h>
+#include <Adafruit_ST7735.h>
 
 #define ESPNOW_CHANNEL 6
 #define SEND_INTERVAL_MS 50
@@ -70,7 +70,7 @@ struct __attribute__((packed)) AckPacket {
 };
 
 Adafruit_ADS1115 ads;
-Adafruit_ST7789 tft(DISPLAY_CS_PIN, DISPLAY_DC_PIN, DISPLAY_RST_PIN);
+Adafruit_ST7735 tft(DISPLAY_CS_PIN, DISPLAY_DC_PIN, DISPLAY_RST_PIN);
 
 portMUX_TYPE ackMux = portMUX_INITIALIZER_UNLOCKED;
 AckPacket latestAck = {};
@@ -322,7 +322,7 @@ void setup() {
   ads.setDataRate(RATE_ADS1115_860SPS);
 
   SPI.begin(SPI_SCK_PIN, SPI_MISO_PIN, SPI_MOSI_PIN);
-  tft.init(DISPLAY_WIDTH, DISPLAY_HEIGHT);
+  tft.initR(INITR_144GREENTAB);
   tft.setRotation(DISPLAY_ROTATION);
   tft.fillScreen(ST77XX_BLACK);
 

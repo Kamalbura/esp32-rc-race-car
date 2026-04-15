@@ -22,6 +22,7 @@ the same name as the `.ino` file inside it.
 - `tests/espnow_receiver_test/espnow_receiver_test.ino`
 - `tests/bts_motor_test/bts_motor_test.ino`
 - `tests/transmitter_pot_test/transmitter_pot_test.ino`
+- `tests/spi_display_128x128_test/spi_display_128x128_test.ino`
 
 ## ESP-NOW Raw ADC Test
 
@@ -80,10 +81,27 @@ The secure test sketches use a shared 16-byte PMK and 16-byte LMK. ESP-NOW
 broadcast packets are not encrypted, so these tests use only the hardcoded
 unicast peer MAC. Change the PMK and LMK before competition use.
 
-The transmitter test display is configured for a `128 x 128` SPI screen with
-small text and `DISPLAY_ROTATION 0`. If the screen is still upside down on your
-physical mount, change `DISPLAY_ROTATION` in `tests/espnow_transmitter_test` to
-`1`, `2`, or `3`.
+The transmitter test display is configured for a `128 x 128` ST7735 SPI screen
+with `initR(INITR_144GREENTAB)`, small text, and `DISPLAY_ROTATION 0`. If the
+screen is still upside down on your physical mount, change `DISPLAY_ROTATION` in
+`tests/espnow_transmitter_test` to `1`, `2`, or `3`.
+
+Latest 30-second idle capture from COM3 after the ST7735 update:
+
+| Channel | Min | Max | Span | Average | Read |
+| --- | --- | --- | --- | --- | --- |
+| `A0` | `18288` | `18315` | `27` | `18303.9` | Stable |
+| `A1` | `17692` | `17720` | `28` | `17710.7` | Stable |
+| `A2` | `3970` | `6330` | `2360` | `4861.5` | Noisy or floating |
+| `A3` | `17700` | `17727` | `27` | `17712.1` | Stable |
+
+`A2` needs a wiring check or a connected potentiometer/joystick axis before it
+should be used for an important control.
+
+If the display is still wrong, upload
+`tests/spi_display_128x128_test/spi_display_128x128_test.ino` to the transmitter.
+It cycles color bars through rotations `0..3`, which makes it easy to identify
+the correct physical orientation.
 
 ## Important Setup Notes
 
@@ -137,10 +155,11 @@ This is the handheld controller board. These pins are used by
 | Display power | Display `VCC` | `5V` or `3V3` | Match your display module requirement |
 | Ground | All module `GND` pins | `GND` | All grounds must be common |
 
-The transmitter code assumes a `128 x 128` SPI display using the Adafruit
-ST7789-compatible driver path. If your exact display is an ST7735 or ILI9341,
-keep the same wiring idea but change the display library/object in the
-transmitter sketch.
+The transmitter code assumes a `128 x 128` ST7735 SPI display. The code uses
+`Adafruit_ST7735` and `initR(INITR_144GREENTAB)`, matching the common 1.44 inch
+128 x 128 TFT examples. If your exact display is ILI9163C or another controller
+sold as a similar 128 x 128 module, the wiring can stay the same but the display
+library/object must change.
 
 ## Receiver ESP32-S3 Pinout
 
@@ -158,7 +177,7 @@ This is the car board. These pins are used by `receiver_code/receiver_code.ino`,
 | Right motor reverse PWM | Right BTS `RPWM` | `GPIO 36` | PWM channel `3`, `20 kHz`, 8-bit |
 | Right driver left enable | Right BTS `L_EN` | `GPIO 11` | Set `HIGH` after PWM starts at zero |
 | Right driver right enable | Right BTS `R_EN` | `GPIO 12` | Set `HIGH` after PWM starts at zero |
-| LED signal | NeoPixel / LED module `DIN` | `GPIO 8` | `48` LEDs in the current code |
+| LED signal | NeoPixel / LED module `DIN` | `GPIO 8` | `16` LEDs in the current code |
 | Battery sense | Voltage divider output | Not assigned | `BATTERY_ADC_PIN = -1` disables it |
 | Ground | BTS logic `GND`, LED `GND`, ESP `GND` | `GND` | Must be tied to motor battery negative |
 
@@ -192,6 +211,21 @@ logic pins. Motor power must go directly to the BTS high-current terminals.
 Bench-test one BTS at a time with `tests/bts_motor_test` and the wheels off the
 ground. Start at low speed. If a motor spins opposite to the expected direction,
 swap that motor's `M+` and `M-` wires or swap that motor's direction in code.
+
+## Drive Safety
+
+The receiver now ramps normal motor changes instead of jumping immediately to
+the new value. This protects the BTS modules and the 555 geared motors during
+release-to-stop and during sudden reverse commands.
+
+| Setting | Value | Meaning |
+| --- | --- | --- |
+| `MOTOR_ACCEL_PWM_PER_SEC` | `650` | How quickly normal throttle increases |
+| `MOTOR_DECEL_PWM_PER_SEC` | `1000` | How quickly normal throttle returns toward zero |
+| `MOTOR_REVERSE_BRAKE_PWM_PER_SEC` | `1500` | How quickly an opposite-direction command first ramps to zero |
+
+Kill switch and failsafe still stop the motors immediately. Normal driving uses
+the ramp, including when the joystick is released to center.
 
 ## Validation Notes
 
