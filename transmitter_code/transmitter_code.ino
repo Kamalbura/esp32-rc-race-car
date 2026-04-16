@@ -12,7 +12,7 @@
 
 /* ================= RADIO CONFIG ================= */
 #define ESPNOW_CHANNEL 6
-#define SEND_INTERVAL_MS 20
+#define SEND_INTERVAL_MS 10
 #define TELEMETRY_STALE_MS 500
 
 uint8_t RECEIVER_MAC[6] = {0xB4, 0x3A, 0x45, 0x3F, 0xA4, 0xE8};
@@ -114,11 +114,14 @@ struct AxisCal {
 // The previous build had these swapped, which caused:
 // forward->left, right->reverse, left->forward, back->right.
 // These provisional min/max values should still be replaced by a clean full capture.
+// Calibrated from guided_calibration_test @ 2026-04-16.
+// Center values measured at rest:  A0≈21220  A1≈20560  A2≈21090  A3≈20440.
+// Deadband raised to 500 (~3.6%) to eliminate center creep from ADC noise.
 AxisCal axisCal[4] = {
-  {4000, 18242, 32000, false, 320},  // A0 steering
-  {4000, 17711, 32000, false, 320},  // A1 throttle
-  {4000, 18321, 32000, false, 320},  // A2 aux / speed trim if needed
-  {4000, 17750, 32000, false, 320}   // A3 mode select
+  {4000, 21220, 32000, true,  500},  // A0 steering  (inverted to match physical direction)
+  {4000, 20560, 32000, true,  500},  // A1 throttle  (inverted to match physical direction)
+  {4000, 21090, 32000, false, 500},  // A2 aux / speed trim if needed
+  {4000, 20440, 32000, false, 500}   // A3 mode select
 };
 
 class AxisFilter {
@@ -166,6 +169,19 @@ uint32_t shortPressDeadlineMs = 0;
 uint32_t lastSendMs = 0;
 uint32_t lastScreenMs = 0;
 uint32_t lastSerialMs = 0;
+
+/* ================= DUAL-CORE DISPLAY OFFLOAD ================= */
+// Display + serial print run on Core 0 so the control loop on Core 1
+// is never blocked by slow SPI writes (~15ms per frame).
+ControlPacket lastBuiltPacket = {};
+portMUX_TYPE displayMux = portMUX_INITIALIZER_UNLOCKED;
+
+/* ================= ADC READ OPTIMIZATION ================= */
+// Throttle + steering are read every cycle (~2.3ms for 2 channels).
+// Aux channels are read every 5th cycle to save ~2.3ms on 80% of iterations.
+int16_t cachedAux1 = 0;
+int16_t cachedAux2 = 0;
+uint8_t auxReadCounter = 0;
 
 uint16_t crc16Ccitt(const uint8_t *data, size_t len) {
   uint16_t crc = 0xFFFF;
@@ -366,10 +382,20 @@ ControlPacket buildPacket() {
   ControlPacket packet = {};
   packet.version = RC_PACKET_VERSION;
   packet.sequence = ++sequenceNumber;
+
+  // Always read throttle + steering at full rate (2 ADC reads ~2.3ms).
   packet.throttle = readAxis(THROTTLE_AXIS_CH);
   packet.steering = readAxis(STEERING_AXIS_CH);
-  packet.aux1 = readAxis(AUX1_AXIS_CH);
-  packet.aux2 = readAxis(AUX2_AXIS_CH);
+
+  // Read aux channels at 1/5 rate (~20 Hz still, saves ~2.3ms on 80% of loops).
+  if (++auxReadCounter >= 5) {
+    auxReadCounter = 0;
+    cachedAux1 = readAxis(AUX1_AXIS_CH);
+    cachedAux2 = readAxis(AUX2_AXIS_CH);
+  }
+  packet.aux1 = cachedAux1;
+  packet.aux2 = cachedAux2;
+
   packet.speedLimit = speedLimit;
   packet.mode = modeFromAxis(packet.aux2);
   packet.buttons = 0;
@@ -582,8 +608,27 @@ void setup() {
   Serial.print("Receiver peer: ");
   printMac(RECEIVER_MAC);
   Serial.println(" (secure direct)");
-  Serial.println("Long press encoder/BOOT toggles kill. Triple short press toggles calibration mode.");
-  Serial.println("Calibration mode limits motor speed on the receiver for safe tests.");
+  Serial.println("Long press encoder/BOOT toggles kill. Single press toggles lights.");
+  Serial.println("Triple short press toggles calibration mode.");
+
+  // Launch display task on Core 0 so SPI writes never block the control loop.
+  xTaskCreatePinnedToCore(displayTask, "disp", 4096, NULL, 1, NULL, 0);
+}
+
+// Display + serial task on Core 0. Runs independently from control loop.
+void displayTask(void *param) {
+  (void)param;
+  for (;;) {
+    ControlPacket pkt;
+    portENTER_CRITICAL(&displayMux);
+    pkt = lastBuiltPacket;
+    portEXIT_CRITICAL(&displayMux);
+
+    drawScreen(pkt);
+    printStatus(pkt);
+
+    vTaskDelay(pdMS_TO_TICKS(50));  // ~20 fps check rate, drawScreen rate-limits to 10 fps
+  }
 }
 
 void loop() {
@@ -600,7 +645,11 @@ void loop() {
     }
   }
 
-  drawScreen(packet);
+  // Share latest packet with Core 0 display task (fast ~20 byte copy)
+  portENTER_CRITICAL(&displayMux);
+  lastBuiltPacket = packet;
+  portEXIT_CRITICAL(&displayMux);
+
+  // Status LED stays on Core 1 for immediate visual feedback
   updateStatusLed(packet);
-  printStatus(packet);
 }
