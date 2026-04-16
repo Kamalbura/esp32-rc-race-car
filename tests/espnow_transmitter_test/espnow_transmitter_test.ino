@@ -8,6 +8,7 @@
 #include <Adafruit_ADS1X15.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_ST7735.h>
+#include <Adafruit_NeoPixel.h>
 
 #define ESPNOW_CHANNEL 6
 #define SEND_INTERVAL_MS 50
@@ -26,6 +27,10 @@
 #define DISPLAY_WIDTH 128
 #define DISPLAY_HEIGHT 128
 #define DISPLAY_ROTATION 0
+
+#define BUILTIN_RGB_PIN 48
+#define BUILTIN_RGB_COUNT 1
+#define BUILTIN_RGB_BRIGHTNESS 24
 
 #define ENCODER_A_PIN 4
 #define ENCODER_B_PIN 5
@@ -71,6 +76,7 @@ struct __attribute__((packed)) AckPacket {
 
 Adafruit_ADS1115 ads;
 Adafruit_ST7735 tft(DISPLAY_CS_PIN, DISPLAY_DC_PIN, DISPLAY_RST_PIN);
+Adafruit_NeoPixel statusPixel(BUILTIN_RGB_COUNT, BUILTIN_RGB_PIN, NEO_GRB + NEO_KHZ800);
 
 portMUX_TYPE ackMux = portMUX_INITIALIZER_UNLOCKED;
 AckPacket latestAck = {};
@@ -282,6 +288,27 @@ void printSerial(const RawAdcPacket &packet) {
   Serial.println();
 }
 
+void setStatusPixel(uint8_t r, uint8_t g, uint8_t b) {
+  statusPixel.setPixelColor(0, statusPixel.Color(r, g, b));
+  statusPixel.show();
+}
+
+void updateStatusLed() {
+  static uint32_t lastUpdate = 0;
+  if (millis() - lastUpdate < 80) return;
+  lastUpdate = millis();
+
+  if (!lastSendOk && sentPackets > 0) {
+    setStatusPixel(80, 0, 0);
+  } else if (waitingForAck) {
+    setStatusPixel(80, 45, 0);
+  } else if (ackValid && lastSendOk) {
+    setStatusPixel(0, 70, 0);
+  } else {
+    setStatusPixel(0, 0, 60);
+  }
+}
+
 void setupEspNow() {
   WiFi.mode(WIFI_STA);
   WiFi.disconnect();
@@ -311,6 +338,10 @@ void setup() {
   pinMode(ENCODER_A_PIN, INPUT_PULLUP);
   pinMode(ENCODER_B_PIN, INPUT_PULLUP);
   pinMode(ENCODER_SW_PIN, INPUT_PULLUP);
+
+  statusPixel.begin();
+  statusPixel.setBrightness(BUILTIN_RGB_BRIGHTNESS);
+  setStatusPixel(0, 0, 20);
 
   Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
   Wire.setClock(400000);
@@ -362,5 +393,6 @@ void loop() {
   }
 
   drawDisplay(lastPacket);
+  updateStatusLed();
   printSerial(lastPacket);
 }

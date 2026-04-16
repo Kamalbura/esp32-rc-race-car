@@ -54,6 +54,7 @@ volatile uint32_t badPackets = 0;
 volatile uint32_t ignoredPackets = 0;
 volatile uint32_t missedPackets = 0;
 volatile uint32_t lastPacketRxMs = 0;
+volatile bool haveSequence = false;
 
 uint16_t lastAckSequence = 0;
 uint16_t lastReceivedSequence = 0;
@@ -150,8 +151,13 @@ void onReceive(const uint8_t *mac, const uint8_t *data, int len) {
   memcpy(lastSender, mac, 6);
   haveSender = true;
   newPacket = true;
-  if (lastReceivedSequence != 0 && packet.sequence != (uint16_t)(lastReceivedSequence + 1)) {
-    missedPackets += (uint16_t)(packet.sequence - lastReceivedSequence - 1);
+  if (haveSequence) {
+    uint16_t delta = (uint16_t)(packet.sequence - lastReceivedSequence);
+    if (delta > 1 && delta < 32768) {
+      missedPackets += delta - 1;
+    }
+  } else {
+    haveSequence = true;
   }
   lastReceivedSequence = packet.sequence;
   packets++;

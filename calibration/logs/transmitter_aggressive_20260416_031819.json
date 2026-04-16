@@ -1,0 +1,3973 @@
+{
+  "source": "tools/aggressive_transmitter_capture.py",
+  "sketch": "tests/transmitter_aggressive_logger_test",
+  "created_at": "2026-04-16T03:28:13",
+  "port": "COM3",
+  "baud": 115200,
+  "duration_s": 2.0,
+  "steps": [
+    {
+      "step_index": 1,
+      "step_name": "center_rest",
+      "instruction": "Release both joysticks. Do not touch encoder.",
+      "samples": 1454,
+      "channels": {
+        "A0": {
+          "min": 17528,
+          "max": 18322,
+          "avg": 18234.86,
+          "span": 794,
+          "start": 18304,
+          "end": 18284,
+          "delta": -20,
+          "max_abs_rate_per_sec": 55142.86,
+          "avg_abs_rate_per_sec": 8345.89
+        },
+        "A1": {
+          "min": 16990,
+          "max": 17724,
+          "avg": 17658.82,
+          "span": 734,
+          "start": 17711,
+          "end": 17695,
+          "delta": -16,
+          "max_abs_rate_per_sec": 48785.71,
+          "avg_abs_rate_per_sec": 5970.68
+        },
+        "A2": {
+          "min": 17718,
+          "max": 18299,
+          "avg": 18276.71,
+          "span": 581,
+          "start": 18286,
+          "end": 18268,
+          "delta": -18,
+          "max_abs_rate_per_sec": 37733.33,
+          "avg_abs_rate_per_sec": 762.45
+        },
+        "A3": {
+          "min": 17470,
+          "max": 17704,
+          "avg": 17685.1,
+          "span": 234,
+          "start": 17692,
+          "end": 17669,
+          "delta": -23,
+          "max_abs_rate_per_sec": 15333.33,
+          "avg_abs_rate_per_sec": 357.55
+        }
+      },
+      "encoder": {
+        "start_delta": -1,
+        "end_delta": -1,
+        "movement": 0,
+        "bits_seen": [
+          3
+        ]
+      },
+      "espnow": {
+        "sent_start": 1,
+        "sent_end": 464,
+        "errors_start": 0,
+        "errors_end": 0,
+        "ack_start": 0,
+        "ack_end": 464
+      }
+    },
+    {
+      "step_index": 2,
+      "step_name": "both_slow_up_center",
+      "instruction": "Move BOTH joysticks slowly full UP, then return center inside the capture window.",
+      "samples": 951,
+      "channels": {
+        "A0": {
+          "min": 8051,
+          "max": 18352,
+          "avg": 16565.76,
+          "span": 10301,
+          "start": 17873,
+          "end": 18144,
+          "delta": 271,
+          "max_abs_rate_per_sec": 732571.43,
+          "avg_abs_rate_per_sec": 18348.24
+        },
+        "A1": {
+          "min": 8,
+          "max": 17791,
+          "avg": 14021.85,
+          "span": 17783,
+          "start": 17364,
+          "end": 16507,
+          "delta": -857,
+          "max_abs_rate_per_sec": 708642.86,
+          "avg_abs_rate_per_sec": 17013.7
+        },
+        "A2": {
+          "min": 8048,
+          "max": 29772,
+          "avg": 17928.67,
+          "span": 21724,
+          "start": 18261,
+          "end": 18362,
+          "delta": 101,
+          "max_abs_rate_per_sec": 733071.43,
+          "avg_abs_rate_per_sec": 14837.61
+        },
+        "A3": {
+          "min": 12,
+          "max": 17767,
+          "avg": 13936.23,
+          "span": 17755,
+          "start": 17671,
+          "end": 17766,
+          "delta": 95,
+          "max_abs_rate_per_sec": 673571.43,
+          "avg_abs_rate_per_sec": 14959.73
+        }
+      },
+      "encoder": {
+        "start_delta": -1,
+        "end_delta": -1,
+        "movement": 0,
+        "bits_seen": [
+          3
+        ]
+      },
+      "espnow": {
+        "sent_start": 465,
+        "sent_end": 766,
+        "errors_start": 0,
+        "errors_end": 0,
+        "ack_start": 465,
+        "ack_end": 766
+      }
+    },
+    {
+      "step_index": 3,
+      "step_name": "both_normal_up_center",
+      "instruction": "Move BOTH joysticks normally full UP, then return center.",
+      "samples": 937,
+      "channels": {
+        "A0": {
+          "min": 17483,
+          "max": 18332,
+          "avg": 18244.27,
+          "span": 849,
+          "start": 18208,
+          "end": 18271,
+          "delta": 63,
+          "max_abs_rate_per_sec": 53714.29,
+          "avg_abs_rate_per_sec": 7501.27
+        },
+        "A1": {
+          "min": 9,
+          "max": 17769,
+          "avg": 14124.61,
+          "span": 17760,
+          "start": 17523,
+          "end": 17478,
+          "delta": -45,
+          "max_abs_rate_per_sec": 236000.0,
+          "avg_abs_rate_per_sec": 8597.58
+        },
+        "A2": {
+          "min": 17548,
+          "max": 18521,
+          "avg": 18313.94,
+          "span": 973,
+          "start": 18370,
+          "end": 18309,
+          "delta": -61,
+          "max_abs_rate_per_sec": 53571.43,
+          "avg_abs_rate_per_sec": 1260.96
+        },
+        "A3": {
+          "min": 13,
+          "max": 17864,
+          "avg": 14821.72,
+          "span": 17851,
+          "start": 17766,
+          "end": 17671,
+          "delta": -95,
+          "max_abs_rate_per_sec": 231500.0,
+          "avg_abs_rate_per_sec": 5269.2
+        }
+      },
+      "encoder": {
+        "start_delta": -1,
+        "end_delta": -1,
+        "movement": 0,
+        "bits_seen": [
+          3
+        ]
+      },
+      "espnow": {
+        "sent_start": 766,
+        "sent_end": 1066,
+        "errors_start": 0,
+        "errors_end": 0,
+        "ack_start": 766,
+        "ack_end": 1066
+      }
+    },
+    {
+      "step_index": 4,
+      "step_name": "both_fast_up_center",
+      "instruction": "Flick BOTH joysticks fast full UP, then return center.",
+      "samples": 476,
+      "channels": {
+        "A0": {
+          "min": 17619,
+          "max": 20537,
+          "avg": 18283.08,
+          "span": 2918,
+          "start": 18314,
+          "end": 18322,
+          "delta": 8,
+          "max_abs_rate_per_sec": 121200.0,
+          "avg_abs_rate_per_sec": 8495.05
+        },
+        "A1": {
+          "min": 9,
+          "max": 17746,
+          "avg": 14557.68,
+          "span": 17737,
+          "start": 17568,
+          "end": 17717,
+          "delta": 149,
+          "max_abs_rate_per_sec": 625733.33,
+          "avg_abs_rate_per_sec": 13280.81
+        },
+        "A2": {
+          "min": 17968,
+          "max": 19496,
+          "avg": 18404.0,
+          "span": 1528,
+          "start": 18310,
+          "end": 18311,
+          "delta": 1,
+          "max_abs_rate_per_sec": 23214.29,
+          "avg_abs_rate_per_sec": 1869.89
+        },
+        "A3": {
+          "min": 13,
+          "max": 17718,
+          "avg": 14784.62,
+          "span": 17705,
+          "start": 17669,
+          "end": 17706,
+          "delta": 37,
+          "max_abs_rate_per_sec": 560285.71,
+          "avg_abs_rate_per_sec": 9807.33
+        }
+      },
+      "encoder": {
+        "start_delta": -1,
+        "end_delta": -1,
+        "movement": 0,
+        "bits_seen": [
+          3
+        ]
+      },
+      "espnow": {
+        "sent_start": 1066,
+        "sent_end": 1217,
+        "errors_start": 0,
+        "errors_end": 0,
+        "ack_start": 1066,
+        "ack_end": 1217
+      }
+    },
+    {
+      "step_index": 5,
+      "step_name": "both_slow_down_center",
+      "instruction": "Move BOTH joysticks slowly full DOWN, then return center.",
+      "samples": 972,
+      "channels": {
+        "A0": {
+          "min": 17566,
+          "max": 18551,
+          "avg": 18280.99,
+          "span": 985,
+          "start": 17900,
+          "end": 18342,
+          "delta": 442,
+          "max_abs_rate_per_sec": 53642.86,
+          "avg_abs_rate_per_sec": 7897.66
+        },
+        "A1": {
+          "min": 16986,
+          "max": 32767,
+          "avg": 19369.92,
+          "span": 15781,
+          "start": 17384,
+          "end": 17783,
+          "delta": 399,
+          "max_abs_rate_per_sec": 139866.67,
+          "avg_abs_rate_per_sec": 6649.42
+        },
+        "A2": {
+          "min": 17709,
+          "max": 18322,
+          "avg": 18264.87,
+          "span": 613,
+          "start": 18316,
+          "end": 18217,
+          "delta": -99,
+          "max_abs_rate_per_sec": 24642.86,
+          "avg_abs_rate_per_sec": 1196.73
+        },
+        "A3": {
+          "min": 17473,
+          "max": 32767,
+          "avg": 19193.26,
+          "span": 15294,
+          "start": 17709,
+          "end": 17720,
+          "delta": 11,
+          "max_abs_rate_per_sec": 138000.0,
+          "avg_abs_rate_per_sec": 2300.15
+        }
+      },
+      "encoder": {
+        "start_delta": -1,
+        "end_delta": -1,
+        "movement": 0,
+        "bits_seen": [
+          3
+        ]
+      },
+      "espnow": {
+        "sent_start": 1218,
+        "sent_end": 1529,
+        "errors_start": 0,
+        "errors_end": 0,
+        "ack_start": 1218,
+        "ack_end": 1529
+      }
+    },
+    {
+      "step_index": 6,
+      "step_name": "both_normal_down_center",
+      "instruction": "Move BOTH joysticks normally full DOWN, then return center.",
+      "samples": 408,
+      "channels": {
+        "A0": {
+          "min": 17607,
+          "max": 18482,
+          "avg": 18301.29,
+          "span": 875,
+          "start": 17607,
+          "end": 18311,
+          "delta": 704,
+          "max_abs_rate_per_sec": 48933.33,
+          "avg_abs_rate_per_sec": 7906.54
+        },
+        "A1": {
+          "min": 17048,
+          "max": 32767,
+          "avg": 20007.92,
+          "span": 15719,
+          "start": 17459,
+          "end": 17734,
+          "delta": 275,
+          "max_abs_rate_per_sec": 1017000.0,
+          "avg_abs_rate_per_sec": 8915.13
+        },
+        "A2": {
+          "min": 17739,
+          "max": 18233,
+          "avg": 18177.62,
+          "span": 494,
+          "start": 18193,
+          "end": 18172,
+          "delta": -21,
+          "max_abs_rate_per_sec": 22928.57,
+          "avg_abs_rate_per_sec": 851.87
+        },
+        "A3": {
+          "min": 17586,
+          "max": 32767,
+          "avg": 19833.55,
+          "span": 15181,
+          "start": 17708,
+          "end": 17787,
+          "delta": 79,
+          "max_abs_rate_per_sec": 306571.43,
+          "avg_abs_rate_per_sec": 5168.17
+        }
+      },
+      "encoder": {
+        "start_delta": -1,
+        "end_delta": -1,
+        "movement": 0,
+        "bits_seen": [
+          3
+        ]
+      },
+      "espnow": {
+        "sent_start": 1530,
+        "sent_end": 1661,
+        "errors_start": 0,
+        "errors_end": 0,
+        "ack_start": 1530,
+        "ack_end": 1661
+      }
+    },
+    {
+      "step_index": 7,
+      "step_name": "both_fast_down_center",
+      "instruction": "Flick BOTH joysticks fast full DOWN, then return center.",
+      "samples": 440,
+      "channels": {
+        "A0": {
+          "min": 17612,
+          "max": 20340,
+          "avg": 18317.34,
+          "span": 2728,
+          "start": 18309,
+          "end": 18321,
+          "delta": 12,
+          "max_abs_rate_per_sec": 91866.67,
+          "avg_abs_rate_per_sec": 8536.58
+        },
+        "A1": {
+          "min": 17059,
+          "max": 32767,
+          "avg": 18341.24,
+          "span": 15708,
+          "start": 17059,
+          "end": 17739,
+          "delta": 680,
+          "max_abs_rate_per_sec": 431657.14,
+          "avg_abs_rate_per_sec": 7710.75
+        },
+        "A2": {
+          "min": 12654,
+          "max": 18245,
+          "avg": 18039.67,
+          "span": 5591,
+          "start": 17863,
+          "end": 18230,
+          "delta": 367,
+          "max_abs_rate_per_sec": 156400.0,
+          "avg_abs_rate_per_sec": 2336.51
+        },
+        "A3": {
+          "min": 17455,
+          "max": 32767,
+          "avg": 18404.17,
+          "span": 15312,
+          "start": 17797,
+          "end": 17711,
+          "delta": -86,
+          "max_abs_rate_per_sec": 428428.57,
+          "avg_abs_rate_per_sec": 2933.67
+        }
+      },
+      "encoder": {
+        "start_delta": -1,
+        "end_delta": -1,
+        "movement": 0,
+        "bits_seen": [
+          3
+        ]
+      },
+      "espnow": {
+        "sent_start": 1662,
+        "sent_end": 1802,
+        "errors_start": 0,
+        "errors_end": 0,
+        "ack_start": 1662,
+        "ack_end": 1802
+      }
+    },
+    {
+      "step_index": 8,
+      "step_name": "both_slow_left_center",
+      "instruction": "Move BOTH joysticks slowly full LEFT, then return center.",
+      "samples": 497,
+      "channels": {
+        "A0": {
+          "min": 7,
+          "max": 18334,
+          "avg": 14605.04,
+          "span": 18327,
+          "start": 18326,
+          "end": 18,
+          "delta": -18308,
+          "max_abs_rate_per_sec": 79771.43,
+          "avg_abs_rate_per_sec": 8089.45
+        },
+        "A1": {
+          "min": 17009,
+          "max": 17753,
+          "avg": 17691.21,
+          "span": 744,
+          "start": 17745,
+          "end": 17408,
+          "delta": -337,
+          "max_abs_rate_per_sec": 51142.86,
+          "avg_abs_rate_per_sec": 5388.64
+        },
+        "A2": {
+          "min": 10,
+          "max": 18248,
+          "avg": 15803.13,
+          "span": 18238,
+          "start": 18248,
+          "end": 14,
+          "delta": -18234,
+          "max_abs_rate_per_sec": 56600.0,
+          "avg_abs_rate_per_sec": 2819.48
+        },
+        "A3": {
+          "min": 17386,
+          "max": 17751,
+          "avg": 17694.24,
+          "span": 365,
+          "start": 17729,
+          "end": 17521,
+          "delta": -208,
+          "max_abs_rate_per_sec": 22785.71,
+          "avg_abs_rate_per_sec": 525.71
+        }
+      },
+      "encoder": {
+        "start_delta": -1,
+        "end_delta": -1,
+        "movement": 0,
+        "bits_seen": [
+          3
+        ]
+      },
+      "espnow": {
+        "sent_start": 1802,
+        "sent_end": 1960,
+        "errors_start": 0,
+        "errors_end": 0,
+        "ack_start": 1802,
+        "ack_end": 1960
+      }
+    },
+    {
+      "step_index": 9,
+      "step_name": "both_normal_left_center",
+      "instruction": "Move BOTH joysticks normally full LEFT, then return center.",
+      "samples": 512,
+      "channels": {
+        "A0": {
+          "min": 11,
+          "max": 18322,
+          "avg": 11325.5,
+          "span": 18311,
+          "start": 13,
+          "end": 18294,
+          "delta": 18281,
+          "max_abs_rate_per_sec": 158142.86,
+          "avg_abs_rate_per_sec": 10915.14
+        },
+        "A1": {
+          "min": 16999,
+          "max": 17803,
+          "avg": 17691.46,
+          "span": 804,
+          "start": 17730,
+          "end": 17722,
+          "delta": -8,
+          "max_abs_rate_per_sec": 51357.14,
+          "avg_abs_rate_per_sec": 5553.13
+        },
+        "A2": {
+          "min": 10,
+          "max": 18260,
+          "avg": 12385.97,
+          "span": 18250,
+          "start": 18,
+          "end": 18229,
+          "delta": 18211,
+          "max_abs_rate_per_sec": 151666.67,
+          "avg_abs_rate_per_sec": 7051.81
+        },
+        "A3": {
+          "min": 17246,
+          "max": 17791,
+          "avg": 17660.32,
+          "span": 545,
+          "start": 17524,
+          "end": 17720,
+          "delta": 196,
+          "max_abs_rate_per_sec": 17066.67,
+          "avg_abs_rate_per_sec": 512.99
+        }
+      },
+      "encoder": {
+        "start_delta": -1,
+        "end_delta": -1,
+        "movement": 0,
+        "bits_seen": [
+          3
+        ]
+      },
+      "espnow": {
+        "sent_start": 1960,
+        "sent_end": 2125,
+        "errors_start": 0,
+        "errors_end": 0,
+        "ack_start": 1960,
+        "ack_end": 2125
+      }
+    },
+    {
+      "step_index": 10,
+      "step_name": "both_fast_left_center",
+      "instruction": "Flick BOTH joysticks fast full LEFT, then return center.",
+      "samples": 370,
+      "channels": {
+        "A0": {
+          "min": 12,
+          "max": 18332,
+          "avg": 15706.77,
+          "span": 18320,
+          "start": 17870,
+          "end": 18317,
+          "delta": 447,
+          "max_abs_rate_per_sec": 857733.33,
+          "avg_abs_rate_per_sec": 18318.2
+        },
+        "A1": {
+          "min": 17145,
+          "max": 17764,
+          "avg": 17657.36,
+          "span": 619,
+          "start": 17397,
+          "end": 17733,
+          "delta": 336,
+          "max_abs_rate_per_sec": 23714.29,
+          "avg_abs_rate_per_sec": 5177.37
+        },
+        "A2": {
+          "min": 13,
+          "max": 18258,
+          "avg": 15948.1,
+          "span": 18245,
+          "start": 18246,
+          "end": 18207,
+          "delta": -39,
+          "max_abs_rate_per_sec": 728200.0,
+          "avg_abs_rate_per_sec": 13036.71
+        },
+        "A3": {
+          "min": 17409,
+          "max": 17766,
+          "avg": 17698.77,
+          "span": 357,
+          "start": 17736,
+          "end": 17723,
+          "delta": -13,
+          "max_abs_rate_per_sec": 17928.57,
+          "avg_abs_rate_per_sec": 648.34
+        }
+      },
+      "encoder": {
+        "start_delta": -1,
+        "end_delta": -1,
+        "movement": 0,
+        "bits_seen": [
+          3
+        ]
+      },
+      "espnow": {
+        "sent_start": 2126,
+        "sent_end": 2243,
+        "errors_start": 0,
+        "errors_end": 0,
+        "ack_start": 2126,
+        "ack_end": 2243
+      }
+    },
+    {
+      "step_index": 11,
+      "step_name": "both_slow_right_center",
+      "instruction": "Move BOTH joysticks slowly full RIGHT, then return center.",
+      "samples": 429,
+      "channels": {
+        "A0": {
+          "min": 17572,
+          "max": 32767,
+          "avg": 20737.6,
+          "span": 15195,
+          "start": 17896,
+          "end": 32767,
+          "delta": 14871,
+          "max_abs_rate_per_sec": 59714.29,
+          "avg_abs_rate_per_sec": 8799.0
+        },
+        "A1": {
+          "min": 17285,
+          "max": 17748,
+          "avg": 17683.06,
+          "span": 463,
+          "start": 17415,
+          "end": 17706,
+          "delta": 291,
+          "max_abs_rate_per_sec": 29600.0,
+          "avg_abs_rate_per_sec": 5200.05
+        },
+        "A2": {
+          "min": 18101,
+          "max": 32767,
+          "avg": 20535.01,
+          "span": 14666,
+          "start": 18204,
+          "end": 32767,
+          "delta": 14563,
+          "max_abs_rate_per_sec": 47133.33,
+          "avg_abs_rate_per_sec": 2229.36
+        },
+        "A3": {
+          "min": 17333,
+          "max": 17740,
+          "avg": 17685.3,
+          "span": 407,
+          "start": 17731,
+          "end": 17534,
+          "delta": -197,
+          "max_abs_rate_per_sec": 14500.0,
+          "avg_abs_rate_per_sec": 442.51
+        }
+      },
+      "encoder": {
+        "start_delta": -1,
+        "end_delta": -1,
+        "movement": 0,
+        "bits_seen": [
+          3
+        ]
+      },
+      "espnow": {
+        "sent_start": 2244,
+        "sent_end": 2382,
+        "errors_start": 0,
+        "errors_end": 0,
+        "ack_start": 2244,
+        "ack_end": 2382
+      }
+    },
+    {
+      "step_index": 12,
+      "step_name": "both_normal_right_center",
+      "instruction": "Move BOTH joysticks normally full RIGHT, then return center.",
+      "samples": 352,
+      "channels": {
+        "A0": {
+          "min": 17585,
+          "max": 32767,
+          "avg": 25062.16,
+          "span": 15182,
+          "start": 32767,
+          "end": 18357,
+          "delta": -14410,
+          "max_abs_rate_per_sec": 294066.67,
+          "avg_abs_rate_per_sec": 11490.94
+        },
+        "A1": {
+          "min": 17090,
+          "max": 17719,
+          "avg": 17627.57,
+          "span": 629,
+          "start": 17685,
+          "end": 17694,
+          "delta": 9,
+          "max_abs_rate_per_sec": 41000.0,
+          "avg_abs_rate_per_sec": 5338.4
+        },
+        "A2": {
+          "min": 17883,
+          "max": 32767,
+          "avg": 24346.24,
+          "span": 14884,
+          "start": 32767,
+          "end": 18335,
+          "delta": -14432,
+          "max_abs_rate_per_sec": 279642.86,
+          "avg_abs_rate_per_sec": 7935.0
+        },
+        "A3": {
+          "min": 17072,
+          "max": 17701,
+          "avg": 17628.76,
+          "span": 629,
+          "start": 17534,
+          "end": 17698,
+          "delta": 164,
+          "max_abs_rate_per_sec": 34071.43,
+          "avg_abs_rate_per_sec": 812.9
+        }
+      },
+      "encoder": {
+        "start_delta": -1,
+        "end_delta": -1,
+        "movement": 0,
+        "bits_seen": [
+          3
+        ]
+      },
+      "espnow": {
+        "sent_start": 2382,
+        "sent_end": 2497,
+        "errors_start": 0,
+        "errors_end": 0,
+        "ack_start": 2382,
+        "ack_end": 2497
+      }
+    },
+    {
+      "step_index": 13,
+      "step_name": "both_fast_right_center",
+      "instruction": "Flick BOTH joysticks fast full RIGHT, then return center.",
+      "samples": 275,
+      "channels": {
+        "A0": {
+          "min": 17613,
+          "max": 32767,
+          "avg": 20556.84,
+          "span": 15154,
+          "start": 18360,
+          "end": 18309,
+          "delta": -51,
+          "max_abs_rate_per_sec": 1027500.0,
+          "avg_abs_rate_per_sec": 20945.43
+        },
+        "A1": {
+          "min": 16980,
+          "max": 17854,
+          "avg": 17676.71,
+          "span": 874,
+          "start": 17710,
+          "end": 17734,
+          "delta": 24,
+          "max_abs_rate_per_sec": 51857.14,
+          "avg_abs_rate_per_sec": 5589.31
+        },
+        "A2": {
+          "min": 18005,
+          "max": 32767,
+          "avg": 20398.04,
+          "span": 14762,
+          "start": 18347,
+          "end": 18237,
+          "delta": -110,
+          "max_abs_rate_per_sec": 970857.14,
+          "avg_abs_rate_per_sec": 15768.69
+        },
+        "A3": {
+          "min": 17487,
+          "max": 17714,
+          "avg": 17673.44,
+          "span": 227,
+          "start": 17706,
+          "end": 17689,
+          "delta": -17,
+          "max_abs_rate_per_sec": 11866.67,
+          "avg_abs_rate_per_sec": 523.23
+        }
+      },
+      "encoder": {
+        "start_delta": -1,
+        "end_delta": -1,
+        "movement": 0,
+        "bits_seen": [
+          3
+        ]
+      },
+      "espnow": {
+        "sent_start": 2497,
+        "sent_end": 2587,
+        "errors_start": 0,
+        "errors_end": 0,
+        "ack_start": 2497,
+        "ack_end": 2586
+      }
+    },
+    {
+      "step_index": 14,
+      "step_name": "right_slow_up_center",
+      "instruction": "RIGHT joystick slowly full UP, then center. Leave left joystick centered.",
+      "samples": 1077,
+      "channels": {
+        "A0": {
+          "min": 17524,
+          "max": 18345,
+          "avg": 18245.45,
+          "span": 821,
+          "start": 18314,
+          "end": 18306,
+          "delta": -8,
+          "max_abs_rate_per_sec": 53500.0,
+          "avg_abs_rate_per_sec": 7535.93
+        },
+        "A1": {
+          "min": 9,
+          "max": 17759,
+          "avg": 16062.59,
+          "span": 17750,
+          "start": 17725,
+          "end": 17719,
+          "delta": -6,
+          "max_abs_rate_per_sec": 211000.0,
+          "avg_abs_rate_per_sec": 6730.89
+        },
+        "A2": {
+          "min": 17494,
+          "max": 18266,
+          "avg": 18221.69,
+          "span": 772,
+          "start": 18229,
+          "end": 18231,
+          "delta": 2,
+          "max_abs_rate_per_sec": 51071.43,
+          "avg_abs_rate_per_sec": 1120.42
+        },
+        "A3": {
+          "min": 17599,
+          "max": 17719,
+          "avg": 17681.55,
+          "span": 120,
+          "start": 17687,
+          "end": 17688,
+          "delta": 1,
+          "max_abs_rate_per_sec": 7071.43,
+          "avg_abs_rate_per_sec": 418.01
+        }
+      },
+      "encoder": {
+        "start_delta": -1,
+        "end_delta": -1,
+        "movement": 0,
+        "bits_seen": [
+          3
+        ]
+      },
+      "espnow": {
+        "sent_start": 2587,
+        "sent_end": 2938,
+        "errors_start": 0,
+        "errors_end": 0,
+        "ack_start": 2587,
+        "ack_end": 2937
+      }
+    },
+    {
+      "step_index": 15,
+      "step_name": "right_normal_up_center",
+      "instruction": "RIGHT joystick normally full UP, then center.",
+      "samples": 639,
+      "channels": {
+        "A0": {
+          "min": 17471,
+          "max": 18343,
+          "avg": 18230.28,
+          "span": 872,
+          "start": 18304,
+          "end": 18122,
+          "delta": -182,
+          "max_abs_rate_per_sec": 49785.71,
+          "avg_abs_rate_per_sec": 7931.74
+        },
+        "A1": {
+          "min": 11,
+          "max": 17749,
+          "avg": 15968.96,
+          "span": 17738,
+          "start": 17713,
+          "end": 13,
+          "delta": -17700,
+          "max_abs_rate_per_sec": 148400.0,
+          "avg_abs_rate_per_sec": 6577.75
+        },
+        "A2": {
+          "min": 17810,
+          "max": 18266,
+          "avg": 18233.53,
+          "span": 456,
+          "start": 18236,
+          "end": 18245,
+          "delta": 9,
+          "max_abs_rate_per_sec": 32000.0,
+          "avg_abs_rate_per_sec": 855.99
+        },
+        "A3": {
+          "min": 17378,
+          "max": 17720,
+          "avg": 17688.97,
+          "span": 342,
+          "start": 17689,
+          "end": 17699,
+          "delta": 10,
+          "max_abs_rate_per_sec": 22928.57,
+          "avg_abs_rate_per_sec": 560.12
+        }
+      },
+      "encoder": {
+        "start_delta": -1,
+        "end_delta": -1,
+        "movement": 0,
+        "bits_seen": [
+          3
+        ]
+      },
+      "espnow": {
+        "sent_start": 2938,
+        "sent_end": 3145,
+        "errors_start": 0,
+        "errors_end": 0,
+        "ack_start": 2938,
+        "ack_end": 3145
+      }
+    },
+    {
+      "step_index": 16,
+      "step_name": "right_fast_up_center",
+      "instruction": "RIGHT joystick fast full UP, then center.",
+      "samples": 525,
+      "channels": {
+        "A0": {
+          "min": 17012,
+          "max": 18325,
+          "avg": 18167.43,
+          "span": 1313,
+          "start": 18117,
+          "end": 18289,
+          "delta": 172,
+          "max_abs_rate_per_sec": 53642.86,
+          "avg_abs_rate_per_sec": 8156.37
+        },
+        "A1": {
+          "min": 11,
+          "max": 17740,
+          "avg": 15877.33,
+          "span": 17729,
+          "start": 14,
+          "end": 17704,
+          "delta": 17690,
+          "max_abs_rate_per_sec": 665933.33,
+          "avg_abs_rate_per_sec": 14949.92
+        },
+        "A2": {
+          "min": 17883,
+          "max": 18252,
+          "avg": 18210.12,
+          "span": 369,
+          "start": 18242,
+          "end": 18220,
+          "delta": -22,
+          "max_abs_rate_per_sec": 23500.0,
+          "avg_abs_rate_per_sec": 1098.97
+        },
+        "A3": {
+          "min": 17431,
+          "max": 17705,
+          "avg": 17668.34,
+          "span": 274,
+          "start": 17690,
+          "end": 17679,
+          "delta": -11,
+          "max_abs_rate_per_sec": 15666.67,
+          "avg_abs_rate_per_sec": 431.29
+        }
+      },
+      "encoder": {
+        "start_delta": -1,
+        "end_delta": -1,
+        "movement": 0,
+        "bits_seen": [
+          3
+        ]
+      },
+      "espnow": {
+        "sent_start": 3146,
+        "sent_end": 3315,
+        "errors_start": 0,
+        "errors_end": 0,
+        "ack_start": 3145,
+        "ack_end": 3314
+      }
+    },
+    {
+      "step_index": 17,
+      "step_name": "right_slow_down_center",
+      "instruction": "RIGHT joystick slowly full DOWN, then center.",
+      "samples": 748,
+      "channels": {
+        "A0": {
+          "min": 17473,
+          "max": 18394,
+          "avg": 18216.24,
+          "span": 921,
+          "start": 18287,
+          "end": 18363,
+          "delta": 76,
+          "max_abs_rate_per_sec": 53642.86,
+          "avg_abs_rate_per_sec": 8345.38
+        },
+        "A1": {
+          "min": 17060,
+          "max": 32767,
+          "avg": 19935.61,
+          "span": 15707,
+          "start": 17710,
+          "end": 32767,
+          "delta": 15057,
+          "max_abs_rate_per_sec": 85428.57,
+          "avg_abs_rate_per_sec": 6257.67
+        },
+        "A2": {
+          "min": 17831,
+          "max": 18249,
+          "avg": 18188.48,
+          "span": 418,
+          "start": 18224,
+          "end": 18172,
+          "delta": -52,
+          "max_abs_rate_per_sec": 23928.57,
+          "avg_abs_rate_per_sec": 705.38
+        },
+        "A3": {
+          "min": 17356,
+          "max": 17699,
+          "avg": 17644.27,
+          "span": 343,
+          "start": 17679,
+          "end": 17623,
+          "delta": -56,
+          "max_abs_rate_per_sec": 20714.29,
+          "avg_abs_rate_per_sec": 505.73
+        }
+      },
+      "encoder": {
+        "start_delta": -1,
+        "end_delta": -1,
+        "movement": 0,
+        "bits_seen": [
+          3
+        ]
+      },
+      "espnow": {
+        "sent_start": 3315,
+        "sent_end": 3559,
+        "errors_start": 0,
+        "errors_end": 0,
+        "ack_start": 3315,
+        "ack_end": 3559
+      }
+    },
+    {
+      "step_index": 18,
+      "step_name": "right_normal_down_center",
+      "instruction": "RIGHT joystick normally full DOWN, then center.",
+      "samples": 570,
+      "channels": {
+        "A0": {
+          "min": 17575,
+          "max": 18383,
+          "avg": 18275.77,
+          "span": 808,
+          "start": 18379,
+          "end": 18349,
+          "delta": -30,
+          "max_abs_rate_per_sec": 50333.33,
+          "avg_abs_rate_per_sec": 7355.78
+        },
+        "A1": {
+          "min": 17022,
+          "max": 32767,
+          "avg": 20001.02,
+          "span": 15745,
+          "start": 32767,
+          "end": 17773,
+          "delta": -14994,
+          "max_abs_rate_per_sec": 342828.57,
+          "avg_abs_rate_per_sec": 8424.99
+        },
+        "A2": {
+          "min": 17641,
+          "max": 18258,
+          "avg": 18220.22,
+          "span": 617,
+          "start": 18168,
+          "end": 18258,
+          "delta": 90,
+          "max_abs_rate_per_sec": 36857.14,
+          "avg_abs_rate_per_sec": 671.39
+        },
+        "A3": {
+          "min": 17381,
+          "max": 17710,
+          "avg": 17674.58,
+          "span": 329,
+          "start": 17623,
+          "end": 17704,
+          "delta": 81,
+          "max_abs_rate_per_sec": 21214.29,
+          "avg_abs_rate_per_sec": 525.73
+        }
+      },
+      "encoder": {
+        "start_delta": -1,
+        "end_delta": -1,
+        "movement": 0,
+        "bits_seen": [
+          3
+        ]
+      },
+      "espnow": {
+        "sent_start": 3560,
+        "sent_end": 3745,
+        "errors_start": 0,
+        "errors_end": 0,
+        "ack_start": 3559,
+        "ack_end": 3745
+      }
+    },
+    {
+      "step_index": 19,
+      "step_name": "right_fast_down_center",
+      "instruction": "RIGHT joystick fast full DOWN, then center.",
+      "samples": 348,
+      "channels": {
+        "A0": {
+          "min": 17717,
+          "max": 18364,
+          "avg": 18266.77,
+          "span": 647,
+          "start": 18348,
+          "end": 18225,
+          "delta": -123,
+          "max_abs_rate_per_sec": 40733.33,
+          "avg_abs_rate_per_sec": 7513.75
+        },
+        "A1": {
+          "min": 17024,
+          "max": 32767,
+          "avg": 19184.77,
+          "span": 15743,
+          "start": 17761,
+          "end": 17645,
+          "delta": -116,
+          "max_abs_rate_per_sec": 983600.0,
+          "avg_abs_rate_per_sec": 14244.78
+        },
+        "A2": {
+          "min": 17582,
+          "max": 18269,
+          "avg": 18232.74,
+          "span": 687,
+          "start": 18254,
+          "end": 18166,
+          "delta": -88,
+          "max_abs_rate_per_sec": 44800.0,
+          "avg_abs_rate_per_sec": 942.07
+        },
+        "A3": {
+          "min": 17486,
+          "max": 17725,
+          "avg": 17689.05,
+          "span": 239,
+          "start": 17693,
+          "end": 17616,
+          "delta": -77,
+          "max_abs_rate_per_sec": 14933.33,
+          "avg_abs_rate_per_sec": 430.13
+        }
+      },
+      "encoder": {
+        "start_delta": -1,
+        "end_delta": -1,
+        "movement": 0,
+        "bits_seen": [
+          3
+        ]
+      },
+      "espnow": {
+        "sent_start": 3745,
+        "sent_end": 3858,
+        "errors_start": 0,
+        "errors_end": 0,
+        "ack_start": 3745,
+        "ack_end": 3858
+      }
+    },
+    {
+      "step_index": 20,
+      "step_name": "right_slow_left_center",
+      "instruction": "RIGHT joystick slowly full LEFT, then center.",
+      "samples": 495,
+      "channels": {
+        "A0": {
+          "min": 17519,
+          "max": 18336,
+          "avg": 18253.67,
+          "span": 817,
+          "start": 18246,
+          "end": 18324,
+          "delta": 78,
+          "max_abs_rate_per_sec": 49400.0,
+          "avg_abs_rate_per_sec": 7793.94
+        },
+        "A1": {
+          "min": 17011,
+          "max": 17752,
+          "avg": 17687.93,
+          "span": 741,
+          "start": 17670,
+          "end": 17740,
+          "delta": 70,
+          "max_abs_rate_per_sec": 48666.67,
+          "avg_abs_rate_per_sec": 5903.33
+        },
+        "A2": {
+          "min": 10,
+          "max": 18266,
+          "avg": 13812.62,
+          "span": 18256,
+          "start": 18180,
+          "end": 18,
+          "delta": -18162,
+          "max_abs_rate_per_sec": 74142.86,
+          "avg_abs_rate_per_sec": 2724.63
+        },
+        "A3": {
+          "min": 17200,
+          "max": 17757,
+          "avg": 17669.07,
+          "span": 557,
+          "start": 17634,
+          "end": 17533,
+          "delta": -101,
+          "max_abs_rate_per_sec": 21000.0,
+          "avg_abs_rate_per_sec": 636.05
+        }
+      },
+      "encoder": {
+        "start_delta": -1,
+        "end_delta": -1,
+        "movement": 0,
+        "bits_seen": [
+          3
+        ]
+      },
+      "espnow": {
+        "sent_start": 3859,
+        "sent_end": 4017,
+        "errors_start": 0,
+        "errors_end": 0,
+        "ack_start": 3858,
+        "ack_end": 4016
+      }
+    },
+    {
+      "step_index": 21,
+      "step_name": "right_normal_left_center",
+      "instruction": "RIGHT joystick normally full LEFT, then center.",
+      "samples": 406,
+      "channels": {
+        "A0": {
+          "min": 17591,
+          "max": 18337,
+          "avg": 18262.66,
+          "span": 746,
+          "start": 18320,
+          "end": 18312,
+          "delta": -8,
+          "max_abs_rate_per_sec": 48466.67,
+          "avg_abs_rate_per_sec": 6915.89
+        },
+        "A1": {
+          "min": 17003,
+          "max": 17753,
+          "avg": 17690.81,
+          "span": 750,
+          "start": 17750,
+          "end": 17737,
+          "delta": -13,
+          "max_abs_rate_per_sec": 51714.29,
+          "avg_abs_rate_per_sec": 5875.8
+        },
+        "A2": {
+          "min": 11,
+          "max": 18232,
+          "avg": 14536.35,
+          "span": 18221,
+          "start": 22,
+          "end": 18222,
+          "delta": 18200,
+          "max_abs_rate_per_sec": 766333.33,
+          "avg_abs_rate_per_sec": 9478.58
+        },
+        "A3": {
+          "min": 17439,
+          "max": 17800,
+          "avg": 17684.93,
+          "span": 361,
+          "start": 17530,
+          "end": 17716,
+          "delta": 186,
+          "max_abs_rate_per_sec": 18066.67,
+          "avg_abs_rate_per_sec": 690.94
+        }
+      },
+      "encoder": {
+        "start_delta": -1,
+        "end_delta": -1,
+        "movement": 0,
+        "bits_seen": [
+          3
+        ]
+      },
+      "espnow": {
+        "sent_start": 4017,
+        "sent_end": 4147,
+        "errors_start": 0,
+        "errors_end": 0,
+        "ack_start": 4017,
+        "ack_end": 4146
+      }
+    },
+    {
+      "step_index": 22,
+      "step_name": "right_fast_left_center",
+      "instruction": "RIGHT joystick fast full LEFT, then center.",
+      "samples": 495,
+      "channels": {
+        "A0": {
+          "min": 17598,
+          "max": 18332,
+          "avg": 18239.86,
+          "span": 734,
+          "start": 18318,
+          "end": 18254,
+          "delta": -64,
+          "max_abs_rate_per_sec": 47714.29,
+          "avg_abs_rate_per_sec": 7257.38
+        },
+        "A1": {
+          "min": 16946,
+          "max": 17745,
+          "avg": 17676.39,
+          "span": 799,
+          "start": 17744,
+          "end": 17675,
+          "delta": -69,
+          "max_abs_rate_per_sec": 50571.43,
+          "avg_abs_rate_per_sec": 5308.8
+        },
+        "A2": {
+          "min": 10,
+          "max": 18517,
+          "avg": 16481.97,
+          "span": 18507,
+          "start": 18232,
+          "end": 18158,
+          "delta": -74,
+          "max_abs_rate_per_sec": 1207200.0,
+          "avg_abs_rate_per_sec": 9769.82
+        },
+        "A3": {
+          "min": 17434,
+          "max": 17811,
+          "avg": 17697.56,
+          "span": 377,
+          "start": 17720,
+          "end": 17662,
+          "delta": -58,
+          "max_abs_rate_per_sec": 21800.0,
+          "avg_abs_rate_per_sec": 652.69
+        }
+      },
+      "encoder": {
+        "start_delta": -1,
+        "end_delta": -1,
+        "movement": 0,
+        "bits_seen": [
+          3
+        ]
+      },
+      "espnow": {
+        "sent_start": 4147,
+        "sent_end": 4306,
+        "errors_start": 0,
+        "errors_end": 0,
+        "ack_start": 4147,
+        "ack_end": 4305
+      }
+    },
+    {
+      "step_index": 23,
+      "step_name": "right_slow_right_center",
+      "instruction": "RIGHT joystick slowly full RIGHT, then center.",
+      "samples": 470,
+      "channels": {
+        "A0": {
+          "min": 17660,
+          "max": 32767,
+          "avg": 20633.72,
+          "span": 15107,
+          "start": 18238,
+          "end": 23064,
+          "delta": 4826,
+          "max_abs_rate_per_sec": 214133.33,
+          "avg_abs_rate_per_sec": 9655.77
+        },
+        "A1": {
+          "min": 16939,
+          "max": 17696,
+          "avg": 17626.6,
+          "span": 757,
+          "start": 17669,
+          "end": 17672,
+          "delta": 3,
+          "max_abs_rate_per_sec": 51785.71,
+          "avg_abs_rate_per_sec": 5306.7
+        },
+        "A2": {
+          "min": 17830,
+          "max": 18188,
+          "avg": 18148.88,
+          "span": 358,
+          "start": 18156,
+          "end": 18154,
+          "delta": -2,
+          "max_abs_rate_per_sec": 21533.33,
+          "avg_abs_rate_per_sec": 1105.05
+        },
+        "A3": {
+          "min": 17446,
+          "max": 17691,
+          "avg": 17661.35,
+          "span": 245,
+          "start": 17666,
+          "end": 17659,
+          "delta": -7,
+          "max_abs_rate_per_sec": 15571.43,
+          "avg_abs_rate_per_sec": 524.84
+        }
+      },
+      "encoder": {
+        "start_delta": -1,
+        "end_delta": -1,
+        "movement": 0,
+        "bits_seen": [
+          3
+        ]
+      },
+      "espnow": {
+        "sent_start": 4306,
+        "sent_end": 4457,
+        "errors_start": 0,
+        "errors_end": 0,
+        "ack_start": 4306,
+        "ack_end": 4457
+      }
+    },
+    {
+      "step_index": 24,
+      "step_name": "right_normal_right_center",
+      "instruction": "RIGHT joystick normally full RIGHT, then center.",
+      "samples": 313,
+      "channels": {
+        "A0": {
+          "min": 17616,
+          "max": 32767,
+          "avg": 22572.45,
+          "span": 15151,
+          "start": 23977,
+          "end": 18264,
+          "delta": -5713,
+          "max_abs_rate_per_sec": 470000.0,
+          "avg_abs_rate_per_sec": 18311.14
+        },
+        "A1": {
+          "min": 17231,
+          "max": 17873,
+          "avg": 17651.04,
+          "span": 642,
+          "start": 17661,
+          "end": 17681,
+          "delta": 20,
+          "max_abs_rate_per_sec": 30600.0,
+          "avg_abs_rate_per_sec": 5425.45
+        },
+        "A2": {
+          "min": 17835,
+          "max": 18184,
+          "avg": 18161.08,
+          "span": 349,
+          "start": 18138,
+          "end": 18176,
+          "delta": 38,
+          "max_abs_rate_per_sec": 23500.0,
+          "avg_abs_rate_per_sec": 1044.69
+        },
+        "A3": {
+          "min": 17644,
+          "max": 17688,
+          "avg": 17673.64,
+          "span": 44,
+          "start": 17654,
+          "end": 17681,
+          "delta": 27,
+          "max_abs_rate_per_sec": 1428.57,
+          "avg_abs_rate_per_sec": 372.5
+        }
+      },
+      "encoder": {
+        "start_delta": -1,
+        "end_delta": -1,
+        "movement": 0,
+        "bits_seen": [
+          3
+        ]
+      },
+      "espnow": {
+        "sent_start": 4457,
+        "sent_end": 4558,
+        "errors_start": 0,
+        "errors_end": 0,
+        "ack_start": 4457,
+        "ack_end": 4558
+      }
+    },
+    {
+      "step_index": 25,
+      "step_name": "right_fast_right_center",
+      "instruction": "RIGHT joystick fast full RIGHT, then center.",
+      "samples": 386,
+      "channels": {
+        "A0": {
+          "min": 17549,
+          "max": 32767,
+          "avg": 19205.69,
+          "span": 15218,
+          "start": 18276,
+          "end": 18256,
+          "delta": -20,
+          "max_abs_rate_per_sec": 686200.0,
+          "avg_abs_rate_per_sec": 15570.84
+        },
+        "A1": {
+          "min": 17058,
+          "max": 17809,
+          "avg": 17646.33,
+          "span": 751,
+          "start": 17683,
+          "end": 17679,
+          "delta": -4,
+          "max_abs_rate_per_sec": 41266.67,
+          "avg_abs_rate_per_sec": 4672.97
+        },
+        "A2": {
+          "min": 17826,
+          "max": 18178,
+          "avg": 18155.36,
+          "span": 352,
+          "start": 18171,
+          "end": 18159,
+          "delta": -12,
+          "max_abs_rate_per_sec": 23785.71,
+          "avg_abs_rate_per_sec": 1220.28
+        },
+        "A3": {
+          "min": 17386,
+          "max": 17687,
+          "avg": 17666.9,
+          "span": 301,
+          "start": 17680,
+          "end": 17670,
+          "delta": -10,
+          "max_abs_rate_per_sec": 19200.0,
+          "avg_abs_rate_per_sec": 582.98
+        }
+      },
+      "encoder": {
+        "start_delta": -1,
+        "end_delta": -1,
+        "movement": 0,
+        "bits_seen": [
+          3
+        ]
+      },
+      "espnow": {
+        "sent_start": 4559,
+        "sent_end": 4682,
+        "errors_start": 0,
+        "errors_end": 0,
+        "ack_start": 4558,
+        "ack_end": 4682
+      }
+    },
+    {
+      "step_index": 26,
+      "step_name": "right_45_up_left_center",
+      "instruction": "RIGHT joystick diagonal 45 degrees UP-LEFT, then center.",
+      "samples": 1939,
+      "channels": {
+        "A0": {
+          "min": 6,
+          "max": 18348,
+          "avg": 16881.37,
+          "span": 18342,
+          "start": 18244,
+          "end": 18269,
+          "delta": 25,
+          "max_abs_rate_per_sec": 534642.86,
+          "avg_abs_rate_per_sec": 7953.39
+        },
+        "A1": {
+          "min": 9,
+          "max": 17749,
+          "avg": 16355.79,
+          "span": 17740,
+          "start": 17662,
+          "end": 17678,
+          "delta": 16,
+          "max_abs_rate_per_sec": 411214.29,
+          "avg_abs_rate_per_sec": 5679.81
+        },
+        "A2": {
+          "min": 17611,
+          "max": 18239,
+          "avg": 18147.56,
+          "span": 628,
+          "start": 18160,
+          "end": 18214,
+          "delta": 54,
+          "max_abs_rate_per_sec": 38142.86,
+          "avg_abs_rate_per_sec": 904.77
+        },
+        "A3": {
+          "min": 17178,
+          "max": 17750,
+          "avg": 17656.42,
+          "span": 572,
+          "start": 17659,
+          "end": 17719,
+          "delta": 60,
+          "max_abs_rate_per_sec": 31733.33,
+          "avg_abs_rate_per_sec": 651.89
+        }
+      },
+      "encoder": {
+        "start_delta": -1,
+        "end_delta": -1,
+        "movement": 0,
+        "bits_seen": [
+          3
+        ]
+      },
+      "espnow": {
+        "sent_start": 4683,
+        "sent_end": 5309,
+        "errors_start": 0,
+        "errors_end": 0,
+        "ack_start": 4682,
+        "ack_end": 5309
+      }
+    },
+    {
+      "step_index": 27,
+      "step_name": "right_45_up_right_center",
+      "instruction": "RIGHT joystick diagonal 45 degrees UP-RIGHT, then center.",
+      "samples": 444,
+      "channels": {
+        "A0": {
+          "min": 17544,
+          "max": 32767,
+          "avg": 20329.48,
+          "span": 15223,
+          "start": 18291,
+          "end": 18340,
+          "delta": 49,
+          "max_abs_rate_per_sec": 727357.14,
+          "avg_abs_rate_per_sec": 10787.18
+        },
+        "A1": {
+          "min": 1865,
+          "max": 17710,
+          "avg": 15494.87,
+          "span": 15845,
+          "start": 17696,
+          "end": 17682,
+          "delta": -14,
+          "max_abs_rate_per_sec": 352142.86,
+          "avg_abs_rate_per_sec": 8596.91
+        },
+        "A2": {
+          "min": 17904,
+          "max": 18240,
+          "avg": 18207.52,
+          "span": 336,
+          "start": 18212,
+          "end": 18198,
+          "delta": -14,
+          "max_abs_rate_per_sec": 20428.57,
+          "avg_abs_rate_per_sec": 854.44
+        },
+        "A3": {
+          "min": 17388,
+          "max": 17741,
+          "avg": 17715.44,
+          "span": 353,
+          "start": 17717,
+          "end": 17708,
+          "delta": -9,
+          "max_abs_rate_per_sec": 23928.57,
+          "avg_abs_rate_per_sec": 578.45
+        }
+      },
+      "encoder": {
+        "start_delta": -1,
+        "end_delta": -1,
+        "movement": 0,
+        "bits_seen": [
+          3
+        ]
+      },
+      "espnow": {
+        "sent_start": 5310,
+        "sent_end": 5453,
+        "errors_start": 0,
+        "errors_end": 0,
+        "ack_start": 5309,
+        "ack_end": 5453
+      }
+    },
+    {
+      "step_index": 28,
+      "step_name": "right_45_down_left_center",
+      "instruction": "RIGHT joystick diagonal 45 degrees DOWN-LEFT, then center.",
+      "samples": 489,
+      "channels": {
+        "A0": {
+          "min": 11,
+          "max": 18352,
+          "avg": 14462.69,
+          "span": 18341,
+          "start": 18336,
+          "end": 18263,
+          "delta": -73,
+          "max_abs_rate_per_sec": 902285.71,
+          "avg_abs_rate_per_sec": 15301.3
+        },
+        "A1": {
+          "min": 16955,
+          "max": 32767,
+          "avg": 20909.32,
+          "span": 15812,
+          "start": 17685,
+          "end": 17702,
+          "delta": 17,
+          "max_abs_rate_per_sec": 979071.43,
+          "avg_abs_rate_per_sec": 11801.68
+        },
+        "A2": {
+          "min": 17828,
+          "max": 18215,
+          "avg": 18172.18,
+          "span": 387,
+          "start": 18201,
+          "end": 18174,
+          "delta": -27,
+          "max_abs_rate_per_sec": 23000.0,
+          "avg_abs_rate_per_sec": 689.08
+        },
+        "A3": {
+          "min": 17265,
+          "max": 17719,
+          "avg": 17676.69,
+          "span": 454,
+          "start": 17710,
+          "end": 17678,
+          "delta": -32,
+          "max_abs_rate_per_sec": 27466.67,
+          "avg_abs_rate_per_sec": 636.21
+        }
+      },
+      "encoder": {
+        "start_delta": -1,
+        "end_delta": -1,
+        "movement": 0,
+        "bits_seen": [
+          3
+        ]
+      },
+      "espnow": {
+        "sent_start": 5453,
+        "sent_end": 5611,
+        "errors_start": 0,
+        "errors_end": 0,
+        "ack_start": 5453,
+        "ack_end": 5611
+      }
+    },
+    {
+      "step_index": 29,
+      "step_name": "right_45_down_right_center",
+      "instruction": "RIGHT joystick diagonal 45 degrees DOWN-RIGHT, then center.",
+      "samples": 428,
+      "channels": {
+        "A0": {
+          "min": 17529,
+          "max": 32767,
+          "avg": 20320.39,
+          "span": 15238,
+          "start": 17857,
+          "end": 18215,
+          "delta": 358,
+          "max_abs_rate_per_sec": 1057714.29,
+          "avg_abs_rate_per_sec": 13771.27
+        },
+        "A1": {
+          "min": 17098,
+          "max": 32767,
+          "avg": 19783.04,
+          "span": 15669,
+          "start": 17382,
+          "end": 17626,
+          "delta": 244,
+          "max_abs_rate_per_sec": 972133.33,
+          "avg_abs_rate_per_sec": 12548.34
+        },
+        "A2": {
+          "min": 17393,
+          "max": 18206,
+          "avg": 18135.58,
+          "span": 813,
+          "start": 18177,
+          "end": 18127,
+          "delta": -50,
+          "max_abs_rate_per_sec": 52428.57,
+          "avg_abs_rate_per_sec": 1431.6
+        },
+        "A3": {
+          "min": 17322,
+          "max": 17712,
+          "avg": 17645.46,
+          "span": 390,
+          "start": 17689,
+          "end": 17635,
+          "delta": -54,
+          "max_abs_rate_per_sec": 22357.14,
+          "avg_abs_rate_per_sec": 639.88
+        }
+      },
+      "encoder": {
+        "start_delta": -1,
+        "end_delta": -1,
+        "movement": 0,
+        "bits_seen": [
+          3
+        ]
+      },
+      "espnow": {
+        "sent_start": 5612,
+        "sent_end": 5750,
+        "errors_start": 0,
+        "errors_end": 0,
+        "ack_start": 5612,
+        "ack_end": 5750
+      }
+    },
+    {
+      "step_index": 30,
+      "step_name": "right_circle_clockwise",
+      "instruction": "RIGHT joystick one smooth clockwise circle, then center.",
+      "samples": 719,
+      "channels": {
+        "A0": {
+          "min": 17292,
+          "max": 32767,
+          "avg": 19931.54,
+          "span": 15475,
+          "start": 18213,
+          "end": 27540,
+          "delta": 9327,
+          "max_abs_rate_per_sec": 138928.57,
+          "avg_abs_rate_per_sec": 8277.7
+        },
+        "A1": {
+          "min": 10,
+          "max": 32767,
+          "avg": 16669.32,
+          "span": 32757,
+          "start": 17632,
+          "end": 32767,
+          "delta": 15135,
+          "max_abs_rate_per_sec": 147500.0,
+          "avg_abs_rate_per_sec": 8125.73
+        },
+        "A2": {
+          "min": 17688,
+          "max": 18243,
+          "avg": 18181.48,
+          "span": 555,
+          "start": 18125,
+          "end": 18186,
+          "delta": 61,
+          "max_abs_rate_per_sec": 33600.0,
+          "avg_abs_rate_per_sec": 803.89
+        },
+        "A3": {
+          "min": 17357,
+          "max": 17742,
+          "avg": 17687.96,
+          "span": 385,
+          "start": 17634,
+          "end": 17357,
+          "delta": -277,
+          "max_abs_rate_per_sec": 21933.33,
+          "avg_abs_rate_per_sec": 608.56
+        }
+      },
+      "encoder": {
+        "start_delta": -1,
+        "end_delta": -1,
+        "movement": 0,
+        "bits_seen": [
+          3
+        ]
+      },
+      "espnow": {
+        "sent_start": 5750,
+        "sent_end": 5982,
+        "errors_start": 0,
+        "errors_end": 0,
+        "ack_start": 5750,
+        "ack_end": 5982
+      }
+    },
+    {
+      "step_index": 31,
+      "step_name": "right_circle_counterclockwise",
+      "instruction": "RIGHT joystick one smooth counterclockwise circle, then center.",
+      "samples": 813,
+      "channels": {
+        "A0": {
+          "min": 9,
+          "max": 32767,
+          "avg": 15675.65,
+          "span": 32758,
+          "start": 28083,
+          "end": 32767,
+          "delta": 4684,
+          "max_abs_rate_per_sec": 143266.67,
+          "avg_abs_rate_per_sec": 12124.38
+        },
+        "A1": {
+          "min": 9,
+          "max": 32767,
+          "avg": 17573.99,
+          "span": 32758,
+          "start": 32767,
+          "end": 12,
+          "delta": -32755,
+          "max_abs_rate_per_sec": 1276785.71,
+          "avg_abs_rate_per_sec": 13350.13
+        },
+        "A2": {
+          "min": 17556,
+          "max": 18194,
+          "avg": 18071.76,
+          "span": 638,
+          "start": 18183,
+          "end": 18137,
+          "delta": -46,
+          "max_abs_rate_per_sec": 33133.33,
+          "avg_abs_rate_per_sec": 708.57
+        },
+        "A3": {
+          "min": 17340,
+          "max": 17698,
+          "avg": 17582.5,
+          "span": 358,
+          "start": 17688,
+          "end": 17642,
+          "delta": -46,
+          "max_abs_rate_per_sec": 15400.0,
+          "avg_abs_rate_per_sec": 408.95
+        }
+      },
+      "encoder": {
+        "start_delta": -1,
+        "end_delta": -1,
+        "movement": 0,
+        "bits_seen": [
+          3
+        ]
+      },
+      "espnow": {
+        "sent_start": 5982,
+        "sent_end": 6245,
+        "errors_start": 0,
+        "errors_end": 0,
+        "ack_start": 5982,
+        "ack_end": 6244
+      }
+    },
+    {
+      "step_index": 32,
+      "step_name": "left_slow_up_center",
+      "instruction": "LEFT joystick slowly full UP, then center. Leave right joystick centered.",
+      "samples": 709,
+      "channels": {
+        "A0": {
+          "min": 17518,
+          "max": 32767,
+          "avg": 18560.77,
+          "span": 15249,
+          "start": 32767,
+          "end": 18352,
+          "delta": -14415,
+          "max_abs_rate_per_sec": 231714.29,
+          "avg_abs_rate_per_sec": 8659.69
+        },
+        "A1": {
+          "min": 11,
+          "max": 17751,
+          "avg": 17016.59,
+          "span": 17740,
+          "start": 20,
+          "end": 17728,
+          "delta": 17708,
+          "max_abs_rate_per_sec": 703571.43,
+          "avg_abs_rate_per_sec": 6562.56
+        },
+        "A2": {
+          "min": 17867,
+          "max": 18673,
+          "avg": 18189.68,
+          "span": 806,
+          "start": 18125,
+          "end": 18233,
+          "delta": 108,
+          "max_abs_rate_per_sec": 21400.0,
+          "avg_abs_rate_per_sec": 671.85
+        },
+        "A3": {
+          "min": 14,
+          "max": 17715,
+          "avg": 16539.25,
+          "span": 17701,
+          "start": 17631,
+          "end": 17643,
+          "delta": 12,
+          "max_abs_rate_per_sec": 340235.29,
+          "avg_abs_rate_per_sec": 2772.22
+        }
+      },
+      "encoder": {
+        "start_delta": -1,
+        "end_delta": -1,
+        "movement": 0,
+        "bits_seen": [
+          3
+        ]
+      },
+      "espnow": {
+        "sent_start": 6245,
+        "sent_end": 6478,
+        "errors_start": 0,
+        "errors_end": 0,
+        "ack_start": 6245,
+        "ack_end": 6477
+      }
+    },
+    {
+      "step_index": 33,
+      "step_name": "left_normal_up_center",
+      "instruction": "LEFT joystick normally full UP, then center.",
+      "samples": 386,
+      "channels": {
+        "A0": {
+          "min": 17538,
+          "max": 18367,
+          "avg": 18274.04,
+          "span": 829,
+          "start": 18347,
+          "end": 17816,
+          "delta": -531,
+          "max_abs_rate_per_sec": 53785.71,
+          "avg_abs_rate_per_sec": 7540.2
+        },
+        "A1": {
+          "min": 17159,
+          "max": 17748,
+          "avg": 17672.7,
+          "span": 589,
+          "start": 17730,
+          "end": 17297,
+          "delta": -433,
+          "max_abs_rate_per_sec": 38200.0,
+          "avg_abs_rate_per_sec": 5326.8
+        },
+        "A2": {
+          "min": 18013,
+          "max": 22620,
+          "avg": 18696.99,
+          "span": 4607,
+          "start": 18229,
+          "end": 18155,
+          "delta": -74,
+          "max_abs_rate_per_sec": 114642.86,
+          "avg_abs_rate_per_sec": 2001.69
+        },
+        "A3": {
+          "min": 13,
+          "max": 17685,
+          "avg": 14064.23,
+          "span": 17672,
+          "start": 17648,
+          "end": 17527,
+          "delta": -121,
+          "max_abs_rate_per_sec": 296785.71,
+          "avg_abs_rate_per_sec": 12038.5
+        }
+      },
+      "encoder": {
+        "start_delta": -1,
+        "end_delta": -1,
+        "movement": 0,
+        "bits_seen": [
+          3
+        ]
+      },
+      "espnow": {
+        "sent_start": 6478,
+        "sent_end": 6603,
+        "errors_start": 0,
+        "errors_end": 0,
+        "ack_start": 6478,
+        "ack_end": 6603
+      }
+    },
+    {
+      "step_index": 34,
+      "step_name": "left_fast_up_center",
+      "instruction": "LEFT joystick fast full UP, then center.",
+      "samples": 493,
+      "channels": {
+        "A0": {
+          "min": 17484,
+          "max": 18377,
+          "avg": 18217.9,
+          "span": 893,
+          "start": 18227,
+          "end": 18341,
+          "delta": 114,
+          "max_abs_rate_per_sec": 48866.67,
+          "avg_abs_rate_per_sec": 7357.71
+        },
+        "A1": {
+          "min": 16933,
+          "max": 17759,
+          "avg": 17617.31,
+          "span": 826,
+          "start": 17618,
+          "end": 17723,
+          "delta": 105,
+          "max_abs_rate_per_sec": 45733.33,
+          "avg_abs_rate_per_sec": 5448.18
+        },
+        "A2": {
+          "min": 17848,
+          "max": 26797,
+          "avg": 18509.29,
+          "span": 8949,
+          "start": 18158,
+          "end": 18277,
+          "delta": 119,
+          "max_abs_rate_per_sec": 275428.57,
+          "avg_abs_rate_per_sec": 3086.38
+        },
+        "A3": {
+          "min": 13,
+          "max": 17831,
+          "avg": 15090.48,
+          "span": 17818,
+          "start": 17544,
+          "end": 17724,
+          "delta": 180,
+          "max_abs_rate_per_sec": 714000.0,
+          "avg_abs_rate_per_sec": 17677.71
+        }
+      },
+      "encoder": {
+        "start_delta": -1,
+        "end_delta": -1,
+        "movement": 0,
+        "bits_seen": [
+          3
+        ]
+      },
+      "espnow": {
+        "sent_start": 6603,
+        "sent_end": 6762,
+        "errors_start": 0,
+        "errors_end": 0,
+        "ack_start": 6603,
+        "ack_end": 6762
+      }
+    },
+    {
+      "step_index": 35,
+      "step_name": "left_slow_down_center",
+      "instruction": "LEFT joystick slowly full DOWN, then center.",
+      "samples": 673,
+      "channels": {
+        "A0": {
+          "min": 17473,
+          "max": 18346,
+          "avg": 18174.1,
+          "span": 873,
+          "start": 18343,
+          "end": 18215,
+          "delta": -128,
+          "max_abs_rate_per_sec": 52642.86,
+          "avg_abs_rate_per_sec": 7689.5
+        },
+        "A1": {
+          "min": 16879,
+          "max": 17730,
+          "avg": 17576.65,
+          "span": 851,
+          "start": 17730,
+          "end": 17597,
+          "delta": -133,
+          "max_abs_rate_per_sec": 51214.29,
+          "avg_abs_rate_per_sec": 5651.59
+        },
+        "A2": {
+          "min": 16276,
+          "max": 18276,
+          "avg": 18022.95,
+          "span": 2000,
+          "start": 18268,
+          "end": 17632,
+          "delta": -636,
+          "max_abs_rate_per_sec": 75000.0,
+          "avg_abs_rate_per_sec": 1541.57
+        },
+        "A3": {
+          "min": 17265,
+          "max": 32767,
+          "avg": 20044.72,
+          "span": 15502,
+          "start": 17712,
+          "end": 32767,
+          "delta": 15055,
+          "max_abs_rate_per_sec": 341514.29,
+          "avg_abs_rate_per_sec": 4063.72
+        }
+      },
+      "encoder": {
+        "start_delta": -1,
+        "end_delta": -1,
+        "movement": 0,
+        "bits_seen": [
+          3
+        ]
+      },
+      "espnow": {
+        "sent_start": 6762,
+        "sent_end": 6981,
+        "errors_start": 0,
+        "errors_end": 0,
+        "ack_start": 6762,
+        "ack_end": 6981
+      }
+    },
+    {
+      "step_index": 36,
+      "step_name": "left_normal_down_center",
+      "instruction": "LEFT joystick normally full DOWN, then center.",
+      "samples": 417,
+      "channels": {
+        "A0": {
+          "min": 17450,
+          "max": 18221,
+          "avg": 18145.33,
+          "span": 771,
+          "start": 18211,
+          "end": 18198,
+          "delta": -13,
+          "max_abs_rate_per_sec": 53500.0,
+          "avg_abs_rate_per_sec": 6507.64
+        },
+        "A1": {
+          "min": 17041,
+          "max": 17607,
+          "avg": 17551.3,
+          "span": 566,
+          "start": 17586,
+          "end": 17582,
+          "delta": -4,
+          "max_abs_rate_per_sec": 38642.86,
+          "avg_abs_rate_per_sec": 4315.38
+        },
+        "A2": {
+          "min": 14275,
+          "max": 18070,
+          "avg": 17817.63,
+          "span": 3795,
+          "start": 17639,
+          "end": 18032,
+          "delta": 393,
+          "max_abs_rate_per_sec": 118400.0,
+          "avg_abs_rate_per_sec": 2747.78
+        },
+        "A3": {
+          "min": 17393,
+          "max": 32767,
+          "avg": 19848.93,
+          "span": 15374,
+          "start": 32767,
+          "end": 17548,
+          "delta": -15219,
+          "max_abs_rate_per_sec": 1024933.33,
+          "avg_abs_rate_per_sec": 12084.26
+        }
+      },
+      "encoder": {
+        "start_delta": -1,
+        "end_delta": -1,
+        "movement": 0,
+        "bits_seen": [
+          3
+        ]
+      },
+      "espnow": {
+        "sent_start": 6982,
+        "sent_end": 7117,
+        "errors_start": 0,
+        "errors_end": 0,
+        "ack_start": 6981,
+        "ack_end": 7117
+      }
+    },
+    {
+      "step_index": 37,
+      "step_name": "left_fast_down_center",
+      "instruction": "LEFT joystick fast full DOWN, then center.",
+      "samples": 424,
+      "channels": {
+        "A0": {
+          "min": 17460,
+          "max": 18203,
+          "avg": 18125.87,
+          "span": 743,
+          "start": 17797,
+          "end": 18186,
+          "delta": 389,
+          "max_abs_rate_per_sec": 48333.33,
+          "avg_abs_rate_per_sec": 7554.56
+        },
+        "A1": {
+          "min": 16854,
+          "max": 17589,
+          "avg": 17528.43,
+          "span": 735,
+          "start": 17250,
+          "end": 17570,
+          "delta": 320,
+          "max_abs_rate_per_sec": 51285.71,
+          "avg_abs_rate_per_sec": 5941.1
+        },
+        "A2": {
+          "min": 11658,
+          "max": 18226,
+          "avg": 17770.93,
+          "span": 6568,
+          "start": 18036,
+          "end": 18085,
+          "delta": 49,
+          "max_abs_rate_per_sec": 188642.86,
+          "avg_abs_rate_per_sec": 3370.19
+        },
+        "A3": {
+          "min": 17217,
+          "max": 32767,
+          "avg": 19464.14,
+          "span": 15550,
+          "start": 17581,
+          "end": 17579,
+          "delta": -2,
+          "max_abs_rate_per_sec": 1007928.57,
+          "avg_abs_rate_per_sec": 17943.03
+        }
+      },
+      "encoder": {
+        "start_delta": -1,
+        "end_delta": -1,
+        "movement": 0,
+        "bits_seen": [
+          3
+        ]
+      },
+      "espnow": {
+        "sent_start": 7118,
+        "sent_end": 7255,
+        "errors_start": 0,
+        "errors_end": 0,
+        "ack_start": 7118,
+        "ack_end": 7255
+      }
+    },
+    {
+      "step_index": 38,
+      "step_name": "left_slow_left_center",
+      "instruction": "LEFT joystick slowly full LEFT, then center.",
+      "samples": 472,
+      "channels": {
+        "A0": {
+          "min": 17389,
+          "max": 18221,
+          "avg": 18117.88,
+          "span": 832,
+          "start": 17673,
+          "end": 18112,
+          "delta": 439,
+          "max_abs_rate_per_sec": 53285.71,
+          "avg_abs_rate_per_sec": 7956.09
+        },
+        "A1": {
+          "min": 16855,
+          "max": 17609,
+          "avg": 17528.98,
+          "span": 754,
+          "start": 17343,
+          "end": 17498,
+          "delta": 155,
+          "max_abs_rate_per_sec": 46733.33,
+          "avg_abs_rate_per_sec": 5062.51
+        },
+        "A2": {
+          "min": 12,
+          "max": 18098,
+          "avg": 13877.72,
+          "span": 18086,
+          "start": 18091,
+          "end": 17906,
+          "delta": -185,
+          "max_abs_rate_per_sec": 97571.43,
+          "avg_abs_rate_per_sec": 5402.72
+        },
+        "A3": {
+          "min": 17477,
+          "max": 17655,
+          "avg": 17568.64,
+          "span": 178,
+          "start": 17580,
+          "end": 17526,
+          "delta": -54,
+          "max_abs_rate_per_sec": 2285.71,
+          "avg_abs_rate_per_sec": 548.81
+        }
+      },
+      "encoder": {
+        "start_delta": -1,
+        "end_delta": -1,
+        "movement": 0,
+        "bits_seen": [
+          3
+        ]
+      },
+      "espnow": {
+        "sent_start": 7256,
+        "sent_end": 7406,
+        "errors_start": 0,
+        "errors_end": 0,
+        "ack_start": 7256,
+        "ack_end": 7406
+      }
+    },
+    {
+      "step_index": 39,
+      "step_name": "left_normal_left_center",
+      "instruction": "LEFT joystick normally full LEFT, then center.",
+      "samples": 446,
+      "channels": {
+        "A0": {
+          "min": 17379,
+          "max": 18131,
+          "avg": 18058.52,
+          "span": 752,
+          "start": 18112,
+          "end": 17711,
+          "delta": -401,
+          "max_abs_rate_per_sec": 52285.71,
+          "avg_abs_rate_per_sec": 7519.4
+        },
+        "A1": {
+          "min": 16792,
+          "max": 17522,
+          "avg": 17466.63,
+          "span": 730,
+          "start": 17492,
+          "end": 17196,
+          "delta": -296,
+          "max_abs_rate_per_sec": 50857.14,
+          "avg_abs_rate_per_sec": 5234.31
+        },
+        "A2": {
+          "min": 12,
+          "max": 18081,
+          "avg": 15479.63,
+          "span": 18069,
+          "start": 17938,
+          "end": 17998,
+          "delta": 60,
+          "max_abs_rate_per_sec": 770400.0,
+          "avg_abs_rate_per_sec": 6449.87
+        },
+        "A3": {
+          "min": 17464,
+          "max": 17621,
+          "avg": 17512.76,
+          "span": 157,
+          "start": 17508,
+          "end": 17512,
+          "delta": 4,
+          "max_abs_rate_per_sec": 3000.0,
+          "avg_abs_rate_per_sec": 456.95
+        }
+      },
+      "encoder": {
+        "start_delta": -1,
+        "end_delta": -1,
+        "movement": 0,
+        "bits_seen": [
+          3
+        ]
+      },
+      "espnow": {
+        "sent_start": 7407,
+        "sent_end": 7549,
+        "errors_start": 0,
+        "errors_end": 0,
+        "ack_start": 7406,
+        "ack_end": 7549
+      }
+    },
+    {
+      "step_index": 40,
+      "step_name": "left_fast_left_center",
+      "instruction": "LEFT joystick fast full LEFT, then center.",
+      "samples": 384,
+      "channels": {
+        "A0": {
+          "min": 17362,
+          "max": 18155,
+          "avg": 18046.48,
+          "span": 793,
+          "start": 18109,
+          "end": 18094,
+          "delta": -15,
+          "max_abs_rate_per_sec": 49000.0,
+          "avg_abs_rate_per_sec": 8307.31
+        },
+        "A1": {
+          "min": 17151,
+          "max": 17548,
+          "avg": 17465.09,
+          "span": 397,
+          "start": 17503,
+          "end": 17488,
+          "delta": -15,
+          "max_abs_rate_per_sec": 24785.71,
+          "avg_abs_rate_per_sec": 4723.31
+        },
+        "A2": {
+          "min": 9,
+          "max": 18023,
+          "avg": 16541.69,
+          "span": 18014,
+          "start": 18004,
+          "end": 17980,
+          "delta": -24,
+          "max_abs_rate_per_sec": 672066.67,
+          "avg_abs_rate_per_sec": 9011.55
+        },
+        "A3": {
+          "min": 17188,
+          "max": 17734,
+          "avg": 17511.91,
+          "span": 546,
+          "start": 17512,
+          "end": 17483,
+          "delta": -29,
+          "max_abs_rate_per_sec": 20466.67,
+          "avg_abs_rate_per_sec": 714.85
+        }
+      },
+      "encoder": {
+        "start_delta": -1,
+        "end_delta": -1,
+        "movement": 0,
+        "bits_seen": [
+          3
+        ]
+      },
+      "espnow": {
+        "sent_start": 7549,
+        "sent_end": 7672,
+        "errors_start": 0,
+        "errors_end": 0,
+        "ack_start": 7549,
+        "ack_end": 7672
+      }
+    },
+    {
+      "step_index": 41,
+      "step_name": "left_slow_right_center",
+      "instruction": "LEFT joystick slowly full RIGHT, then center.",
+      "samples": 393,
+      "channels": {
+        "A0": {
+          "min": 17494,
+          "max": 18119,
+          "avg": 18055.42,
+          "span": 625,
+          "start": 18095,
+          "end": 18104,
+          "delta": 9,
+          "max_abs_rate_per_sec": 40866.67,
+          "avg_abs_rate_per_sec": 6722.67
+        },
+        "A1": {
+          "min": 16785,
+          "max": 17510,
+          "avg": 17450.62,
+          "span": 725,
+          "start": 17041,
+          "end": 17497,
+          "delta": 456,
+          "max_abs_rate_per_sec": 47333.33,
+          "avg_abs_rate_per_sec": 5639.66
+        },
+        "A2": {
+          "min": 17256,
+          "max": 32767,
+          "avg": 19533.51,
+          "span": 15511,
+          "start": 17703,
+          "end": 17987,
+          "delta": 284,
+          "max_abs_rate_per_sec": 1002133.33,
+          "avg_abs_rate_per_sec": 5776.34
+        },
+        "A3": {
+          "min": 17185,
+          "max": 17509,
+          "avg": 17482.19,
+          "span": 324,
+          "start": 17489,
+          "end": 17479,
+          "delta": -10,
+          "max_abs_rate_per_sec": 21000.0,
+          "avg_abs_rate_per_sec": 605.4
+        }
+      },
+      "encoder": {
+        "start_delta": -1,
+        "end_delta": -1,
+        "movement": 0,
+        "bits_seen": [
+          3
+        ]
+      },
+      "espnow": {
+        "sent_start": 7673,
+        "sent_end": 7797,
+        "errors_start": 0,
+        "errors_end": 0,
+        "ack_start": 7673,
+        "ack_end": 7797
+      }
+    },
+    {
+      "step_index": 42,
+      "step_name": "left_normal_right_center",
+      "instruction": "LEFT joystick normally full RIGHT, then center.",
+      "samples": 407,
+      "channels": {
+        "A0": {
+          "min": 17455,
+          "max": 18134,
+          "avg": 18062.89,
+          "span": 679,
+          "start": 17545,
+          "end": 18105,
+          "delta": 560,
+          "max_abs_rate_per_sec": 44400.0,
+          "avg_abs_rate_per_sec": 7084.8
+        },
+        "A1": {
+          "min": 16949,
+          "max": 17528,
+          "avg": 17467.27,
+          "span": 579,
+          "start": 17270,
+          "end": 17510,
+          "delta": 240,
+          "max_abs_rate_per_sec": 37933.33,
+          "avg_abs_rate_per_sec": 5329.04
+        },
+        "A2": {
+          "min": 17674,
+          "max": 32767,
+          "avg": 19029.05,
+          "span": 15093,
+          "start": 17998,
+          "end": 18009,
+          "delta": 11,
+          "max_abs_rate_per_sec": 431529.41,
+          "avg_abs_rate_per_sec": 4071.98
+        },
+        "A3": {
+          "min": 17415,
+          "max": 17526,
+          "avg": 17492.65,
+          "span": 111,
+          "start": 17499,
+          "end": 17497,
+          "delta": -2,
+          "max_abs_rate_per_sec": 2200.0,
+          "avg_abs_rate_per_sec": 539.35
+        }
+      },
+      "encoder": {
+        "start_delta": -1,
+        "end_delta": -1,
+        "movement": 0,
+        "bits_seen": [
+          3
+        ]
+      },
+      "espnow": {
+        "sent_start": 7798,
+        "sent_end": 7930,
+        "errors_start": 0,
+        "errors_end": 0,
+        "ack_start": 7798,
+        "ack_end": 7930
+      }
+    },
+    {
+      "step_index": 43,
+      "step_name": "left_fast_right_center",
+      "instruction": "LEFT joystick fast full RIGHT, then center.",
+      "samples": 593,
+      "channels": {
+        "A0": {
+          "min": 17377,
+          "max": 18143,
+          "avg": 18068.73,
+          "span": 766,
+          "start": 18119,
+          "end": 18126,
+          "delta": 7,
+          "max_abs_rate_per_sec": 50333.33,
+          "avg_abs_rate_per_sec": 7295.68
+        },
+        "A1": {
+          "min": 16809,
+          "max": 17527,
+          "avg": 17473.95,
+          "span": 718,
+          "start": 17495,
+          "end": 17511,
+          "delta": 16,
+          "max_abs_rate_per_sec": 46800.0,
+          "avg_abs_rate_per_sec": 5279.18
+        },
+        "A2": {
+          "min": 17687,
+          "max": 32767,
+          "avg": 18495.09,
+          "span": 15080,
+          "start": 18007,
+          "end": 18018,
+          "delta": 11,
+          "max_abs_rate_per_sec": 1050357.14,
+          "avg_abs_rate_per_sec": 7290.6
+        },
+        "A3": {
+          "min": 17216,
+          "max": 17558,
+          "avg": 17503.1,
+          "span": 342,
+          "start": 17510,
+          "end": 17500,
+          "delta": -10,
+          "max_abs_rate_per_sec": 19066.67,
+          "avg_abs_rate_per_sec": 645.94
+        }
+      },
+      "encoder": {
+        "start_delta": -1,
+        "end_delta": -1,
+        "movement": 0,
+        "bits_seen": [
+          3
+        ]
+      },
+      "espnow": {
+        "sent_start": 7931,
+        "sent_end": 8123,
+        "errors_start": 0,
+        "errors_end": 0,
+        "ack_start": 7930,
+        "ack_end": 8123
+      }
+    },
+    {
+      "step_index": 44,
+      "step_name": "left_45_up_left_center",
+      "instruction": "LEFT joystick diagonal 45 degrees UP-LEFT, then center.",
+      "samples": 532,
+      "channels": {
+        "A0": {
+          "min": 17383,
+          "max": 18371,
+          "avg": 18148.39,
+          "span": 988,
+          "start": 18131,
+          "end": 18305,
+          "delta": 174,
+          "max_abs_rate_per_sec": 51857.14,
+          "avg_abs_rate_per_sec": 7457.38
+        },
+        "A1": {
+          "min": 16808,
+          "max": 17748,
+          "avg": 17551.2,
+          "span": 940,
+          "start": 17512,
+          "end": 17683,
+          "delta": 171,
+          "max_abs_rate_per_sec": 51785.71,
+          "avg_abs_rate_per_sec": 5283.27
+        },
+        "A2": {
+          "min": 8,
+          "max": 18521,
+          "avg": 14466.91,
+          "span": 18513,
+          "start": 18025,
+          "end": 18179,
+          "delta": 154,
+          "max_abs_rate_per_sec": 1148000.0,
+          "avg_abs_rate_per_sec": 4912.19
+        },
+        "A3": {
+          "min": 194,
+          "max": 17967,
+          "avg": 14118.44,
+          "span": 17773,
+          "start": 17513,
+          "end": 17653,
+          "delta": 140,
+          "max_abs_rate_per_sec": 933466.67,
+          "avg_abs_rate_per_sec": 4634.46
+        }
+      },
+      "encoder": {
+        "start_delta": -1,
+        "end_delta": -1,
+        "movement": 0,
+        "bits_seen": [
+          3
+        ]
+      },
+      "espnow": {
+        "sent_start": 8123,
+        "sent_end": 8294,
+        "errors_start": 0,
+        "errors_end": 0,
+        "ack_start": 8123,
+        "ack_end": 8293
+      }
+    },
+    {
+      "step_index": 45,
+      "step_name": "left_45_up_right_center",
+      "instruction": "LEFT joystick diagonal 45 degrees UP-RIGHT, then center.",
+      "samples": 410,
+      "channels": {
+        "A0": {
+          "min": 17539,
+          "max": 18309,
+          "avg": 18226.12,
+          "span": 770,
+          "start": 18302,
+          "end": 17754,
+          "delta": -548,
+          "max_abs_rate_per_sec": 52785.71,
+          "avg_abs_rate_per_sec": 8016.97
+        },
+        "A1": {
+          "min": 16946,
+          "max": 17699,
+          "avg": 17629.3,
+          "span": 753,
+          "start": 17683,
+          "end": 17450,
+          "delta": -233,
+          "max_abs_rate_per_sec": 51928.57,
+          "avg_abs_rate_per_sec": 5682.42
+        },
+        "A2": {
+          "min": 17760,
+          "max": 32767,
+          "avg": 22619.51,
+          "span": 15007,
+          "start": 18181,
+          "end": 18190,
+          "delta": 9,
+          "max_abs_rate_per_sec": 917000.0,
+          "avg_abs_rate_per_sec": 5680.79
+        },
+        "A3": {
+          "min": 5977,
+          "max": 17911,
+          "avg": 14285.78,
+          "span": 11934,
+          "start": 17650,
+          "end": 17649,
+          "delta": -1,
+          "max_abs_rate_per_sec": 737133.33,
+          "avg_abs_rate_per_sec": 4240.1
+        }
+      },
+      "encoder": {
+        "start_delta": -1,
+        "end_delta": -1,
+        "movement": 0,
+        "bits_seen": [
+          3
+        ]
+      },
+      "espnow": {
+        "sent_start": 8294,
+        "sent_end": 8428,
+        "errors_start": 0,
+        "errors_end": 0,
+        "ack_start": 8294,
+        "ack_end": 8428
+      }
+    },
+    {
+      "step_index": 46,
+      "step_name": "left_45_down_left_center",
+      "instruction": "LEFT joystick diagonal 45 degrees DOWN-LEFT, then center.",
+      "samples": 603,
+      "channels": {
+        "A0": {
+          "min": 17534,
+          "max": 18308,
+          "avg": 18231.13,
+          "span": 774,
+          "start": 18283,
+          "end": 18292,
+          "delta": 9,
+          "max_abs_rate_per_sec": 50600.0,
+          "avg_abs_rate_per_sec": 7750.58
+        },
+        "A1": {
+          "min": 16963,
+          "max": 17691,
+          "avg": 17637.45,
+          "span": 728,
+          "start": 17664,
+          "end": 17665,
+          "delta": 1,
+          "max_abs_rate_per_sec": 47733.33,
+          "avg_abs_rate_per_sec": 5010.84
+        },
+        "A2": {
+          "min": 62,
+          "max": 18652,
+          "avg": 14794.88,
+          "span": 18590,
+          "start": 18188,
+          "end": 18149,
+          "delta": -39,
+          "max_abs_rate_per_sec": 591857.14,
+          "avg_abs_rate_per_sec": 6279.14
+        },
+        "A3": {
+          "min": 17481,
+          "max": 32767,
+          "avg": 20574.34,
+          "span": 15286,
+          "start": 17645,
+          "end": 17677,
+          "delta": 32,
+          "max_abs_rate_per_sec": 716800.0,
+          "avg_abs_rate_per_sec": 5651.47
+        }
+      },
+      "encoder": {
+        "start_delta": -1,
+        "end_delta": -1,
+        "movement": 0,
+        "bits_seen": [
+          3
+        ]
+      },
+      "espnow": {
+        "sent_start": 8428,
+        "sent_end": 8624,
+        "errors_start": 0,
+        "errors_end": 0,
+        "ack_start": 8428,
+        "ack_end": 8624
+      }
+    },
+    {
+      "step_index": 47,
+      "step_name": "left_45_down_right_center",
+      "instruction": "LEFT joystick diagonal 45 degrees DOWN-RIGHT, then center.",
+      "samples": 277,
+      "channels": {
+        "A0": {
+          "min": 17537,
+          "max": 18303,
+          "avg": 18229.25,
+          "span": 766,
+          "start": 18292,
+          "end": 18284,
+          "delta": -8,
+          "max_abs_rate_per_sec": 53928.57,
+          "avg_abs_rate_per_sec": 7903.78
+        },
+        "A1": {
+          "min": 17006,
+          "max": 17684,
+          "avg": 17637.75,
+          "span": 678,
+          "start": 17656,
+          "end": 17676,
+          "delta": 20,
+          "max_abs_rate_per_sec": 47714.29,
+          "avg_abs_rate_per_sec": 4761.31
+        },
+        "A2": {
+          "min": 17827,
+          "max": 32767,
+          "avg": 22833.93,
+          "span": 14940,
+          "start": 18147,
+          "end": 18191,
+          "delta": 44,
+          "max_abs_rate_per_sec": 800466.67,
+          "avg_abs_rate_per_sec": 14884.64
+        },
+        "A3": {
+          "min": 17534,
+          "max": 32767,
+          "avg": 22501.56,
+          "span": 15233,
+          "start": 17674,
+          "end": 17651,
+          "delta": -23,
+          "max_abs_rate_per_sec": 1010133.33,
+          "avg_abs_rate_per_sec": 15284.01
+        }
+      },
+      "encoder": {
+        "start_delta": -1,
+        "end_delta": -1,
+        "movement": 0,
+        "bits_seen": [
+          3
+        ]
+      },
+      "espnow": {
+        "sent_start": 8624,
+        "sent_end": 8714,
+        "errors_start": 0,
+        "errors_end": 0,
+        "ack_start": 8624,
+        "ack_end": 8714
+      }
+    },
+    {
+      "step_index": 48,
+      "step_name": "left_circle_clockwise",
+      "instruction": "LEFT joystick one smooth clockwise circle, then center.",
+      "samples": 624,
+      "channels": {
+        "A0": {
+          "min": 17529,
+          "max": 18346,
+          "avg": 18241.79,
+          "span": 817,
+          "start": 18291,
+          "end": 18323,
+          "delta": 32,
+          "max_abs_rate_per_sec": 53785.71,
+          "avg_abs_rate_per_sec": 7197.23
+        },
+        "A1": {
+          "min": 17177,
+          "max": 17723,
+          "avg": 17647.13,
+          "span": 546,
+          "start": 17667,
+          "end": 17706,
+          "delta": 39,
+          "max_abs_rate_per_sec": 35142.86,
+          "avg_abs_rate_per_sec": 4272.14
+        },
+        "A2": {
+          "min": 13,
+          "max": 32767,
+          "avg": 18587.3,
+          "span": 32754,
+          "start": 18175,
+          "end": 32767,
+          "delta": 14592,
+          "max_abs_rate_per_sec": 999866.67,
+          "avg_abs_rate_per_sec": 12605.65
+        },
+        "A3": {
+          "min": 13,
+          "max": 32767,
+          "avg": 16428.75,
+          "span": 32754,
+          "start": 17645,
+          "end": 15709,
+          "delta": -1936,
+          "max_abs_rate_per_sec": 867933.33,
+          "avg_abs_rate_per_sec": 14314.52
+        }
+      },
+      "encoder": {
+        "start_delta": -1,
+        "end_delta": -1,
+        "movement": 0,
+        "bits_seen": [
+          3
+        ]
+      },
+      "espnow": {
+        "sent_start": 8715,
+        "sent_end": 8918,
+        "errors_start": 0,
+        "errors_end": 0,
+        "ack_start": 8714,
+        "ack_end": 8918
+      }
+    },
+    {
+      "step_index": 49,
+      "step_name": "left_circle_counterclockwise",
+      "instruction": "LEFT joystick one smooth counterclockwise circle, then center.",
+      "samples": 545,
+      "channels": {
+        "A0": {
+          "min": 17631,
+          "max": 18329,
+          "avg": 18210.16,
+          "span": 698,
+          "start": 18319,
+          "end": 18220,
+          "delta": -99,
+          "max_abs_rate_per_sec": 44600.0,
+          "avg_abs_rate_per_sec": 6119.65
+        },
+        "A1": {
+          "min": 16917,
+          "max": 17707,
+          "avg": 17604.88,
+          "span": 790,
+          "start": 17699,
+          "end": 17607,
+          "delta": -92,
+          "max_abs_rate_per_sec": 48400.0,
+          "avg_abs_rate_per_sec": 4873.72
+        },
+        "A2": {
+          "min": 13,
+          "max": 32767,
+          "avg": 17910.58,
+          "span": 32754,
+          "start": 32767,
+          "end": 18072,
+          "delta": -14695,
+          "max_abs_rate_per_sec": 491533.33,
+          "avg_abs_rate_per_sec": 15221.92
+        },
+        "A3": {
+          "min": 13,
+          "max": 32767,
+          "avg": 17645.83,
+          "span": 32754,
+          "start": 17411,
+          "end": 17525,
+          "delta": 114,
+          "max_abs_rate_per_sec": 453333.33,
+          "avg_abs_rate_per_sec": 15281.5
+        }
+      },
+      "encoder": {
+        "start_delta": -1,
+        "end_delta": -1,
+        "movement": 0,
+        "bits_seen": [
+          3
+        ]
+      },
+      "espnow": {
+        "sent_start": 8919,
+        "sent_end": 9097,
+        "errors_start": 0,
+        "errors_end": 0,
+        "ack_start": 8918,
+        "ack_end": 9097
+      }
+    },
+    {
+      "step_index": 50,
+      "step_name": "encoder_idle",
+      "instruction": "Do not touch joysticks or encoder.",
+      "samples": 555,
+      "channels": {
+        "A0": {
+          "min": 17472,
+          "max": 18233,
+          "avg": 18164.11,
+          "span": 761,
+          "start": 18217,
+          "end": 18198,
+          "delta": -19,
+          "max_abs_rate_per_sec": 50357.14,
+          "avg_abs_rate_per_sec": 6922.1
+        },
+        "A1": {
+          "min": 16888,
+          "max": 17622,
+          "avg": 17566.02,
+          "span": 734,
+          "start": 17603,
+          "end": 17596,
+          "delta": -7,
+          "max_abs_rate_per_sec": 51071.43,
+          "avg_abs_rate_per_sec": 4947.61
+        },
+        "A2": {
+          "min": 17428,
+          "max": 18087,
+          "avg": 18062.68,
+          "span": 659,
+          "start": 18069,
+          "end": 18065,
+          "delta": -4,
+          "max_abs_rate_per_sec": 43000.0,
+          "avg_abs_rate_per_sec": 1088.53
+        },
+        "A3": {
+          "min": 17315,
+          "max": 17540,
+          "avg": 17522.68,
+          "span": 225,
+          "start": 17518,
+          "end": 17523,
+          "delta": 5,
+          "max_abs_rate_per_sec": 13733.33,
+          "avg_abs_rate_per_sec": 497.86
+        }
+      },
+      "encoder": {
+        "start_delta": -1,
+        "end_delta": -1,
+        "movement": 0,
+        "bits_seen": [
+          3
+        ]
+      },
+      "espnow": {
+        "sent_start": 9097,
+        "sent_end": 9280,
+        "errors_start": 0,
+        "errors_end": 0,
+        "ack_start": 9097,
+        "ack_end": 9279
+      }
+    },
+    {
+      "step_index": 51,
+      "step_name": "encoder_one_right",
+      "instruction": "Turn encoder exactly 1 click RIGHT.",
+      "samples": 929,
+      "channels": {
+        "A0": {
+          "min": 17469,
+          "max": 18226,
+          "avg": 18146.57,
+          "span": 757,
+          "start": 18209,
+          "end": 18200,
+          "delta": -9,
+          "max_abs_rate_per_sec": 53071.43,
+          "avg_abs_rate_per_sec": 7178.57
+        },
+        "A1": {
+          "min": 17006,
+          "max": 17618,
+          "avg": 17562.31,
+          "span": 612,
+          "start": 17597,
+          "end": 17601,
+          "delta": 4,
+          "max_abs_rate_per_sec": 42214.29,
+          "avg_abs_rate_per_sec": 5019.67
+        },
+        "A2": {
+          "min": 17742,
+          "max": 18083,
+          "avg": 18062.83,
+          "span": 341,
+          "start": 18068,
+          "end": 18067,
+          "delta": -1,
+          "max_abs_rate_per_sec": 23142.86,
+          "avg_abs_rate_per_sec": 769.77
+        },
+        "A3": {
+          "min": 17214,
+          "max": 17536,
+          "avg": 17519.76,
+          "span": 322,
+          "start": 17525,
+          "end": 17516,
+          "delta": -9,
+          "max_abs_rate_per_sec": 21857.14,
+          "avg_abs_rate_per_sec": 467.13
+        }
+      },
+      "encoder": {
+        "start_delta": -1,
+        "end_delta": -1,
+        "movement": 0,
+        "bits_seen": [
+          0,
+          2,
+          3
+        ]
+      },
+      "espnow": {
+        "sent_start": 9280,
+        "sent_end": 9586,
+        "errors_start": 0,
+        "errors_end": 0,
+        "ack_start": 9280,
+        "ack_end": 9586
+      }
+    },
+    {
+      "step_index": 52,
+      "step_name": "encoder_two_right",
+      "instruction": "Turn encoder exactly 2 clicks RIGHT.",
+      "samples": 1261,
+      "channels": {
+        "A0": {
+          "min": 17417,
+          "max": 18208,
+          "avg": 18132.07,
+          "span": 791,
+          "start": 18191,
+          "end": 18163,
+          "delta": -28,
+          "max_abs_rate_per_sec": 53571.43,
+          "avg_abs_rate_per_sec": 7727.52
+        },
+        "A1": {
+          "min": 16871,
+          "max": 17661,
+          "avg": 17562.22,
+          "span": 790,
+          "start": 17602,
+          "end": 17621,
+          "delta": 19,
+          "max_abs_rate_per_sec": 52285.71,
+          "avg_abs_rate_per_sec": 4980.64
+        },
+        "A2": {
+          "min": 17426,
+          "max": 18082,
+          "avg": 18060.33,
+          "span": 656,
+          "start": 18065,
+          "end": 18069,
+          "delta": 4,
+          "max_abs_rate_per_sec": 43200.0,
+          "avg_abs_rate_per_sec": 1109.71
+        },
+        "A3": {
+          "min": 17203,
+          "max": 17538,
+          "avg": 17517.87,
+          "span": 335,
+          "start": 17526,
+          "end": 17525,
+          "delta": -1,
+          "max_abs_rate_per_sec": 21933.33,
+          "avg_abs_rate_per_sec": 625.54
+        }
+      },
+      "encoder": {
+        "start_delta": -1,
+        "end_delta": 3,
+        "movement": 4,
+        "bits_seen": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      "espnow": {
+        "sent_start": 9586,
+        "sent_end": 9997,
+        "errors_start": 0,
+        "errors_end": 0,
+        "ack_start": 9586,
+        "ack_end": 9997
+      }
+    },
+    {
+      "step_index": 53,
+      "step_name": "encoder_many_right",
+      "instruction": "Turn encoder MANY clicks RIGHT across the 2 seconds.",
+      "samples": 376,
+      "channels": {
+        "A0": {
+          "min": 17416,
+          "max": 18190,
+          "avg": 18083.06,
+          "span": 774,
+          "start": 18163,
+          "end": 18170,
+          "delta": 7,
+          "max_abs_rate_per_sec": 50333.33,
+          "avg_abs_rate_per_sec": 9997.72
+        },
+        "A1": {
+          "min": 16869,
+          "max": 17630,
+          "avg": 17544.49,
+          "span": 761,
+          "start": 17624,
+          "end": 17604,
+          "delta": -20,
+          "max_abs_rate_per_sec": 51428.57,
+          "avg_abs_rate_per_sec": 6648.37
+        },
+        "A2": {
+          "min": 17349,
+          "max": 18078,
+          "avg": 18053.22,
+          "span": 729,
+          "start": 18065,
+          "end": 18072,
+          "delta": 7,
+          "max_abs_rate_per_sec": 50928.57,
+          "avg_abs_rate_per_sec": 1841.03
+        },
+        "A3": {
+          "min": 17192,
+          "max": 17536,
+          "avg": 17515.91,
+          "span": 344,
+          "start": 17516,
+          "end": 17526,
+          "delta": 10,
+          "max_abs_rate_per_sec": 21785.71,
+          "avg_abs_rate_per_sec": 692.54
+        }
+      },
+      "encoder": {
+        "start_delta": 3,
+        "end_delta": 4,
+        "movement": 1,
+        "bits_seen": [
+          0,
+          1,
+          3
+        ]
+      },
+      "espnow": {
+        "sent_start": 9997,
+        "sent_end": 10122,
+        "errors_start": 0,
+        "errors_end": 0,
+        "ack_start": 9997,
+        "ack_end": 10122
+      }
+    },
+    {
+      "step_index": 54,
+      "step_name": "encoder_one_left",
+      "instruction": "Turn encoder exactly 1 click LEFT.",
+      "samples": 595,
+      "channels": {
+        "A0": {
+          "min": 17430,
+          "max": 18187,
+          "avg": 18107.7,
+          "span": 757,
+          "start": 18175,
+          "end": 18167,
+          "delta": -8,
+          "max_abs_rate_per_sec": 49466.67,
+          "avg_abs_rate_per_sec": 8015.25
+        },
+        "A1": {
+          "min": 16920,
+          "max": 17626,
+          "avg": 17564.69,
+          "span": 706,
+          "start": 17601,
+          "end": 17593,
+          "delta": -8,
+          "max_abs_rate_per_sec": 45533.33,
+          "avg_abs_rate_per_sec": 5272.62
+        },
+        "A2": {
+          "min": 17573,
+          "max": 18090,
+          "avg": 18063.42,
+          "span": 517,
+          "start": 18064,
+          "end": 18062,
+          "delta": -2,
+          "max_abs_rate_per_sec": 34266.67,
+          "avg_abs_rate_per_sec": 1048.95
+        },
+        "A3": {
+          "min": 17206,
+          "max": 17545,
+          "avg": 17521.16,
+          "span": 339,
+          "start": 17517,
+          "end": 17518,
+          "delta": 1,
+          "max_abs_rate_per_sec": 21200.0,
+          "avg_abs_rate_per_sec": 579.36
+        }
+      },
+      "encoder": {
+        "start_delta": 4,
+        "end_delta": 4,
+        "movement": 0,
+        "bits_seen": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      "espnow": {
+        "sent_start": 10123,
+        "sent_end": 10319,
+        "errors_start": 0,
+        "errors_end": 0,
+        "ack_start": 10122,
+        "ack_end": 10319
+      }
+    },
+    {
+      "step_index": 55,
+      "step_name": "encoder_two_left",
+      "instruction": "Turn encoder exactly 2 clicks LEFT.",
+      "samples": 329,
+      "channels": {
+        "A0": {
+          "min": 17565,
+          "max": 18182,
+          "avg": 18106.81,
+          "span": 617,
+          "start": 18159,
+          "end": 18154,
+          "delta": -5,
+          "max_abs_rate_per_sec": 40466.67,
+          "avg_abs_rate_per_sec": 7913.09
+        },
+        "A1": {
+          "min": 16884,
+          "max": 17616,
+          "avg": 17561.32,
+          "span": 732,
+          "start": 17601,
+          "end": 17601,
+          "delta": 0,
+          "max_abs_rate_per_sec": 50071.43,
+          "avg_abs_rate_per_sec": 5560.16
+        },
+        "A2": {
+          "min": 17737,
+          "max": 18082,
+          "avg": 18063.76,
+          "span": 345,
+          "start": 18070,
+          "end": 18060,
+          "delta": -10,
+          "max_abs_rate_per_sec": 22714.29,
+          "avg_abs_rate_per_sec": 741.23
+        },
+        "A3": {
+          "min": 17150,
+          "max": 17539,
+          "avg": 17515.47,
+          "span": 389,
+          "start": 17525,
+          "end": 17513,
+          "delta": -12,
+          "max_abs_rate_per_sec": 26642.86,
+          "avg_abs_rate_per_sec": 915.77
+        }
+      },
+      "encoder": {
+        "start_delta": 4,
+        "end_delta": 3,
+        "movement": -1,
+        "bits_seen": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      "espnow": {
+        "sent_start": 10319,
+        "sent_end": 10428,
+        "errors_start": 0,
+        "errors_end": 0,
+        "ack_start": 10319,
+        "ack_end": 10428
+      }
+    },
+    {
+      "step_index": 56,
+      "step_name": "encoder_many_left",
+      "instruction": "Turn encoder MANY clicks LEFT across the 2 seconds.",
+      "samples": 467,
+      "channels": {
+        "A0": {
+          "min": 17421,
+          "max": 18189,
+          "avg": 18117.62,
+          "span": 768,
+          "start": 18156,
+          "end": 18159,
+          "delta": 3,
+          "max_abs_rate_per_sec": 50000.0,
+          "avg_abs_rate_per_sec": 6808.94
+        },
+        "A1": {
+          "min": 16869,
+          "max": 17617,
+          "avg": 17565.0,
+          "span": 748,
+          "start": 17594,
+          "end": 17583,
+          "delta": -11,
+          "max_abs_rate_per_sec": 49200.0,
+          "avg_abs_rate_per_sec": 4710.0
+        },
+        "A2": {
+          "min": 17736,
+          "max": 18081,
+          "avg": 18062.95,
+          "span": 345,
+          "start": 18058,
+          "end": 18060,
+          "delta": 2,
+          "max_abs_rate_per_sec": 24500.0,
+          "avg_abs_rate_per_sec": 725.51
+        },
+        "A3": {
+          "min": 17069,
+          "max": 17536,
+          "avg": 17517.0,
+          "span": 467,
+          "start": 17513,
+          "end": 17518,
+          "delta": 5,
+          "max_abs_rate_per_sec": 32071.43,
+          "avg_abs_rate_per_sec": 725.18
+        }
+      },
+      "encoder": {
+        "start_delta": 3,
+        "end_delta": -2,
+        "movement": -5,
+        "bits_seen": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      "espnow": {
+        "sent_start": 10428,
+        "sent_end": 10583,
+        "errors_start": 0,
+        "errors_end": 0,
+        "ack_start": 10428,
+        "ack_end": 10583
+      }
+    },
+    {
+      "step_index": 57,
+      "step_name": "encoder_button_hold_release",
+      "instruction": "Press and hold encoder button, then release before capture ends.",
+      "samples": 526,
+      "channels": {
+        "A0": {
+          "min": 17407,
+          "max": 18177,
+          "avg": 18113.45,
+          "span": 770,
+          "start": 18160,
+          "end": 18162,
+          "delta": 2,
+          "max_abs_rate_per_sec": 53571.43,
+          "avg_abs_rate_per_sec": 6162.54
+        },
+        "A1": {
+          "min": 16854,
+          "max": 17613,
+          "avg": 17548.46,
+          "span": 759,
+          "start": 17581,
+          "end": 17604,
+          "delta": 23,
+          "max_abs_rate_per_sec": 48200.0,
+          "avg_abs_rate_per_sec": 4215.18
+        },
+        "A2": {
+          "min": 17321,
+          "max": 18073,
+          "avg": 18048.08,
+          "span": 752,
+          "start": 18063,
+          "end": 18069,
+          "delta": 6,
+          "max_abs_rate_per_sec": 49466.67,
+          "avg_abs_rate_per_sec": 1450.54
+        },
+        "A3": {
+          "min": 17196,
+          "max": 17526,
+          "avg": 17509.45,
+          "span": 330,
+          "start": 17524,
+          "end": 17512,
+          "delta": -12,
+          "max_abs_rate_per_sec": 21333.33,
+          "avg_abs_rate_per_sec": 459.45
+        }
+      },
+      "encoder": {
+        "start_delta": -2,
+        "end_delta": -2,
+        "movement": 0,
+        "bits_seen": [
+          3
+        ]
+      },
+      "espnow": {
+        "sent_start": 10583,
+        "sent_end": 10759,
+        "errors_start": 0,
+        "errors_end": 0,
+        "ack_start": 10583,
+        "ack_end": 10758
+      }
+    },
+    {
+      "step_index": 58,
+      "step_name": "aggressive_all_controls",
+      "instruction": "Aggressive final: mix both sticks, diagonals, encoder turns, then release center.",
+      "samples": 1968,
+      "channels": {
+        "A0": {
+          "min": 10,
+          "max": 32767,
+          "avg": 18074.39,
+          "span": 32757,
+          "start": 18162,
+          "end": 18295,
+          "delta": 133,
+          "max_abs_rate_per_sec": 1359214.29,
+          "avg_abs_rate_per_sec": 8512.6
+        },
+        "A1": {
+          "min": 9,
+          "max": 32767,
+          "avg": 17529.91,
+          "span": 32758,
+          "start": 17603,
+          "end": 17713,
+          "delta": 110,
+          "max_abs_rate_per_sec": 783266.67,
+          "avg_abs_rate_per_sec": 6333.7
+        },
+        "A2": {
+          "min": 12,
+          "max": 19443,
+          "avg": 17792.35,
+          "span": 19431,
+          "start": 18055,
+          "end": 18201,
+          "delta": 146,
+          "max_abs_rate_per_sec": 1381428.57,
+          "avg_abs_rate_per_sec": 3250.9
+        },
+        "A3": {
+          "min": 15,
+          "max": 32767,
+          "avg": 17496.52,
+          "span": 32752,
+          "start": 17510,
+          "end": 17690,
+          "delta": 180,
+          "max_abs_rate_per_sec": 528676.47,
+          "avg_abs_rate_per_sec": 2386.86
+        }
+      },
+      "encoder": {
+        "start_delta": -2,
+        "end_delta": 2,
+        "movement": 4,
+        "bits_seen": [
+          0,
+          1,
+          2,
+          3
+        ]
+      },
+      "espnow": {
+        "sent_start": 10759,
+        "sent_end": 11412,
+        "errors_start": 0,
+        "errors_end": 0,
+        "ack_start": 10759,
+        "ack_end": 11412
+      }
+    }
+  ]
+}

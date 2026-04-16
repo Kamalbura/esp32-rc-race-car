@@ -8,13 +8,23 @@
 #include <Adafruit_ADS1X15.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_ST7735.h>
+#include <Adafruit_NeoPixel.h>
 
 /* ================= RADIO CONFIG ================= */
 #define ESPNOW_CHANNEL 6
 #define SEND_INTERVAL_MS 20
 
-// Start with broadcast for bench testing. For racing, paste the receiver MAC.
-uint8_t RECEIVER_MAC[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
+uint8_t RECEIVER_MAC[6] = {0xB4, 0x3A, 0x45, 0x3F, 0xA4, 0xE8};
+
+const uint8_t ESPNOW_PMK[16] = {
+  0x52, 0x43, 0x52, 0x41, 0x43, 0x45, 0x50, 0x4D,
+  0x4B, 0x32, 0x30, 0x32, 0x36, 0x30, 0x34, 0x15
+};
+
+const uint8_t ESPNOW_LMK[16] = {
+  0x42, 0x54, 0x53, 0x45, 0x53, 0x50, 0x4E, 0x4F,
+  0x57, 0x52, 0x41, 0x57, 0x41, 0x44, 0x43, 0x31
+};
 
 /* ================= TRANSMITTER PIN CONFIG ================= */
 #define I2C_SDA_PIN 8
@@ -31,17 +41,28 @@ uint8_t RECEIVER_MAC[6] = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 #define ENCODER_A_PIN 4
 #define ENCODER_B_PIN 5
 #define ENCODER_SW_PIN 6
+#define BOOT_BUTTON_PIN 0
 
 /* ================= DISPLAY CONFIG ================= */
 #define DISPLAY_WIDTH 128
 #define DISPLAY_HEIGHT 128
 #define DISPLAY_ROTATION 0
 
+/* ================= STATUS RGB LED ================= */
+#define BUILTIN_RGB_PIN 48
+#define BUILTIN_RGB_COUNT 1
+#define BUILTIN_RGB_BRIGHTNESS 24
+
 /* ================= PACKET FORMAT ================= */
 #define RC_PACKET_VERSION 1
 #define BTN_KILL 0x01
 #define BTN_LIGHTS 0x02
 #define BTN_AUX1 0x04
+#define BTN_CALIBRATION BTN_AUX1
+
+#define BUTTON_DEBOUNCE_MS 40
+#define BUTTON_LONG_PRESS_MS 700
+#define BUTTON_MULTI_CLICK_MS 700
 
 struct __attribute__((packed)) ControlPacket {
   uint8_t version;
@@ -71,6 +92,7 @@ static_assert(sizeof(ControlPacket) <= 250, "ESP-NOW v1 packet must stay <= 250 
 
 Adafruit_ADS1115 ads;
 Adafruit_ST7735 tft(DISPLAY_CS_PIN, DISPLAY_DC_PIN, DISPLAY_RST_PIN);
+Adafruit_NeoPixel statusPixel(BUILTIN_RGB_COUNT, BUILTIN_RGB_PIN, NEO_GRB + NEO_KHZ800);
 
 struct AxisCal {
   int16_t minRaw;
@@ -80,12 +102,13 @@ struct AxisCal {
   int16_t deadbandRaw;
 };
 
-// Replace these after running tests/transmitter_pot_test.
+// Provisional centers from the latest guided center capture.
+// Replace min/max with a clean full-stick capture after the next calibration pass.
 AxisCal axisCal[4] = {
-  {4100, 13200, 22400, true,  80}, // A0 throttle
-  {4100, 13200, 22400, false, 80}, // A1 steering
-  {4100, 13200, 22400, false, 80}, // A2 aux / speed trim if needed
-  {4100, 13200, 22400, false, 80}  // A3 mode select
+  {4000, 18242, 32000, true,  320},  // A0 throttle
+  {4000, 17711, 32000, false, 320},  // A1 steering
+  {4000, 18321, 32000, false, 320},  // A2 aux / speed trim if needed
+  {4000, 17750, 32000, false, 320}   // A3 mode select
 };
 
 class AxisFilter {
@@ -115,9 +138,18 @@ volatile bool telemetryReady = false;
 TelemetryPacket latestTelemetry = {};
 
 uint16_t sequenceNumber = 0;
-uint16_t speedLimit = 700;
+uint16_t speedLimit = 128;
 bool killLatched = true;
 bool lightsEnabled = true;
+bool encoderSwitchDown = false;
+bool bootButtonDown = false;
+bool calibrationMode = true;
+uint32_t encoderButtonPressCount = 0;
+bool actionButtonDown = false;
+bool longPressHandled = false;
+uint32_t buttonPressStartMs = 0;
+uint8_t shortPressCount = 0;
+uint32_t shortPressDeadlineMs = 0;
 uint32_t lastSendMs = 0;
 uint32_t lastScreenMs = 0;
 uint32_t lastSerialMs = 0;
@@ -163,8 +195,9 @@ bool addPeer(const uint8_t *mac) {
   esp_now_peer_info_t peer = {};
   memcpy(peer.peer_addr, mac, 6);
   peer.channel = ESPNOW_CHANNEL;
-  peer.encrypt = false;
+  peer.encrypt = true;
   peer.ifidx = WIFI_IF_STA;
+  memcpy(peer.lmk, ESPNOW_LMK, sizeof(ESPNOW_LMK));
 
   esp_err_t result = esp_now_add_peer(&peer);
   return result == ESP_OK || result == ESP_ERR_ESPNOW_EXIST;
@@ -224,25 +257,92 @@ int16_t readAxis(uint8_t channel) {
 }
 
 void updateEncoder() {
-  static int lastA = HIGH;
-  static bool lastButton = HIGH;
-  static uint32_t lastButtonChange = 0;
+  static bool initialized = false;
+  static uint8_t lastState = 0;
+  static int8_t quadAccum = 0;
+  static bool rawButtonState = HIGH;
+  static bool lastStableButton = HIGH;
+  static uint32_t lastBounceMs = 0;
+  static const int8_t quadTable[16] = {
+    0, -1,  1,  0,
+    1,  0,  0, -1,
+   -1,  0,  0,  1,
+    0,  1, -1,  0
+  };
 
-  int a = digitalRead(ENCODER_A_PIN);
-  if (a != lastA && a == LOW) {
-    if (digitalRead(ENCODER_B_PIN) == HIGH) speedLimit += 25;
-    else speedLimit -= 25;
-    speedLimit = constrain(speedLimit, 150, 1000);
-  }
-  lastA = a;
+  uint8_t a = digitalRead(ENCODER_A_PIN) ? 1 : 0;
+  uint8_t b = digitalRead(ENCODER_B_PIN) ? 1 : 0;
+  uint8_t state = (a << 1) | b;
 
-  bool button = digitalRead(ENCODER_SW_PIN);
-  if (button != lastButton && millis() - lastButtonChange > 40) {
-    lastButtonChange = millis();
-    lastButton = button;
-    if (button == LOW) {
-      killLatched = !killLatched;
+  if (!initialized) {
+    lastState = state;
+    initialized = true;
+  } else if (state != lastState) {
+    quadAccum += quadTable[(lastState << 2) | state];
+    lastState = state;
+
+    if (quadAccum >= 4) {
+      speedLimit = constrain(speedLimit + 5, 0, 255);
+      quadAccum = 0;
+    } else if (quadAccum <= -4) {
+      speedLimit = constrain(speedLimit - 5, 0, 255);
+      quadAccum = 0;
     }
+  }
+
+  bool encoderButton = digitalRead(ENCODER_SW_PIN);
+  bool bootButton = digitalRead(BOOT_BUTTON_PIN);
+  encoderSwitchDown = (encoderButton == LOW);
+  bootButtonDown = (bootButton == LOW);
+  bool button = encoderSwitchDown || bootButtonDown;
+
+  if (button != rawButtonState) {
+    rawButtonState = button;
+    lastBounceMs = millis();
+  }
+
+  if (millis() - lastBounceMs >= BUTTON_DEBOUNCE_MS && button != lastStableButton) {
+    lastStableButton = button;
+
+    if (button == LOW) {
+      actionButtonDown = true;
+      longPressHandled = false;
+      buttonPressStartMs = millis();
+    } else {
+      actionButtonDown = false;
+      if (!longPressHandled) {
+        encoderButtonPressCount++;
+        shortPressCount++;
+        shortPressDeadlineMs = millis() + BUTTON_MULTI_CLICK_MS;
+        Serial.printf("short press count=%lu shortGroup=%u encSw=%u boot=%u\n",
+                      encoderButtonPressCount,
+                      shortPressCount,
+                      encoderSwitchDown ? 1 : 0,
+                      bootButtonDown ? 1 : 0);
+      }
+    }
+  }
+
+  if (actionButtonDown && !longPressHandled && millis() - buttonPressStartMs >= BUTTON_LONG_PRESS_MS) {
+    killLatched = !killLatched;
+    longPressHandled = true;
+    shortPressCount = 0;
+    shortPressDeadlineMs = 0;
+    Serial.printf("long press kill=%u encSw=%u boot=%u\n",
+                  killLatched,
+                  encoderSwitchDown ? 1 : 0,
+                  bootButtonDown ? 1 : 0);
+  }
+
+  if (!actionButtonDown && shortPressCount > 0 && millis() >= shortPressDeadlineMs) {
+    if (shortPressCount >= 3) {
+      calibrationMode = !calibrationMode;
+      Serial.printf("calibration_mode=%u via %u short presses\n",
+                    calibrationMode ? 1 : 0,
+                    shortPressCount);
+    }
+    shortPressCount = 0;
+    shortPressDeadlineMs = 0;
   }
 }
 
@@ -265,6 +365,7 @@ ControlPacket buildPacket() {
   packet.buttons = 0;
   if (killLatched) packet.buttons |= BTN_KILL;
   if (lightsEnabled) packet.buttons |= BTN_LIGHTS;
+  if (calibrationMode) packet.buttons |= BTN_CALIBRATION;
   packet.crc = controlCrc(packet);
   return packet;
 }
@@ -291,16 +392,20 @@ void drawScreen(const ControlPacket &packet) {
   tft.print("STR ");
   tft.print(packet.steering);
   tft.setCursor(0, 46);
-  tft.print("LIM ");
-  tft.print(packet.speedLimit / 10);
-  tft.print("%");
-  tft.setCursor(72, 46);
+  tft.print("SPD ");
+  tft.print(packet.speedLimit);
+  tft.print("/255");
+  tft.setCursor(92, 46);
   tft.print("M");
   tft.print(packet.mode);
 
   tft.setCursor(0, 66);
+  tft.setTextColor(calibrationMode ? ST77XX_CYAN : ST77XX_WHITE);
+  tft.print(calibrationMode ? "CAL SAFE" : "DRIVE");
+
+  tft.setCursor(72, 66);
   tft.setTextColor(lastSendOk ? ST77XX_GREEN : ST77XX_YELLOW);
-  tft.print(lastSendOk ? "TX OK" : "TX WAIT");
+  tft.print(lastSendOk ? "TX OK" : "WAIT");
 
   if (telemetryReady) {
     tft.setCursor(0, 80);
@@ -320,6 +425,35 @@ void drawScreen(const ControlPacket &packet) {
     tft.setTextColor(ST77XX_RED);
     tft.print("NO RX TEL");
   }
+
+  tft.setTextColor(encoderSwitchDown ? ST77XX_GREEN : ST77XX_WHITE);
+  tft.setCursor(0, 108);
+  tft.print("SW ");
+  tft.print(encoderSwitchDown ? "DOWN " : "UP   ");
+  tft.print(bootButtonDown ? " B" : " -");
+  tft.print(encoderButtonPressCount);
+}
+
+void setStatusPixel(uint8_t r, uint8_t g, uint8_t b) {
+  statusPixel.setPixelColor(0, statusPixel.Color(r, g, b));
+  statusPixel.show();
+}
+
+void updateStatusLed(const ControlPacket &packet) {
+  static uint32_t lastUpdate = 0;
+  if (millis() - lastUpdate < 80) return;
+  lastUpdate = millis();
+
+  if (packet.buttons & BTN_KILL) {
+    uint8_t pulse = (millis() / 200) % 2 ? 80 : 8;
+    setStatusPixel(pulse, 0, 0);
+  } else if (!lastSendOk) {
+    setStatusPixel(80, 45, 0);
+  } else if (telemetryReady) {
+    setStatusPixel(0, 70, 0);
+  } else {
+    setStatusPixel(0, 0, 60);
+  }
 }
 
 void printStatus(const ControlPacket &packet) {
@@ -330,6 +464,11 @@ void printStatus(const ControlPacket &packet) {
                 packet.sequence, packet.throttle, packet.steering,
                 packet.speedLimit, packet.mode, killLatched,
                 lastSendOk ? "ok" : "pending/fail");
+  Serial.printf(" cal=%u encSw=%u boot=%u swCount=%lu",
+                calibrationMode ? 1 : 0,
+                encoderSwitchDown ? 1 : 0,
+                bootButtonDown ? 1 : 0,
+                encoderButtonPressCount);
   if (telemetryReady) {
     Serial.printf(" rxAge=%ums left=%d right=%d batt=%umV",
                   latestTelemetry.packetAgeMs,
@@ -352,6 +491,7 @@ void setupEspNow() {
     while (true) delay(1000);
   }
 
+  esp_now_set_pmk(ESPNOW_PMK);
   esp_now_register_send_cb(onDataSent);
   esp_now_register_recv_cb(onTelemetryRecv);
 
@@ -368,6 +508,11 @@ void setup() {
   pinMode(ENCODER_A_PIN, INPUT_PULLUP);
   pinMode(ENCODER_B_PIN, INPUT_PULLUP);
   pinMode(ENCODER_SW_PIN, INPUT_PULLUP);
+  pinMode(BOOT_BUTTON_PIN, INPUT_PULLUP);
+
+  statusPixel.begin();
+  statusPixel.setBrightness(BUILTIN_RGB_BRIGHTNESS);
+  setStatusPixel(0, 0, 20);
 
   Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
   Wire.setClock(400000);
@@ -389,8 +534,9 @@ void setup() {
   Serial.println(WiFi.macAddress());
   Serial.print("Receiver peer: ");
   printMac(RECEIVER_MAC);
-  Serial.println(isBroadcastMac(RECEIVER_MAC) ? " (broadcast)" : " (direct)");
-  Serial.println("Encoder button toggles kill. Start with wheels off ground.");
+  Serial.println(" (secure direct)");
+  Serial.println("Long press encoder/BOOT toggles kill. Triple short press toggles calibration mode.");
+  Serial.println("Calibration mode limits motor speed on the receiver for safe tests.");
 }
 
 void loop() {
@@ -408,5 +554,6 @@ void loop() {
   }
 
   drawScreen(packet);
+  updateStatusLed(packet);
   printStatus(packet);
 }

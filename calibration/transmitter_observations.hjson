@@ -1,0 +1,28 @@
+{
+  // Fill this from the CAL_JSON_BEGIN / CAL_JSON_END block printed by
+  // tests/transmitter_guided_calibration_test.
+  //
+  // Current hardware roles:
+  // COM3: transmitter, MAC B4:3A:45:3F:46:BC
+  // COM4: receiver, MAC B4:3A:45:3F:A4:E8
+  //
+  // MPU6050 car mounting target:
+  // +X points to the front of the car.
+  // +Y points to the left side of the car.
+  // +Z points upward.
+  // Positive gyro Z is left turn yaw.
+
+  source: "pending guided calibration"
+  notes: [
+    "Run receiver test on COM4 first.",
+    "Run guided calibration test on COM3.",
+    "For each prompt, hold the requested joystick/encoder position and press the encoder switch.",
+    "Paste the final serial JSON block below or replace this file with it."
+  ]
+  latestIdleObservation: {
+    A0: { min: 18288, max: 18315, span: 27, avg: 18303.9, read: "stable" }
+    A1: { min: 17692, max: 17720, span: 28, avg: 17710.7, read: "stable" }
+    A2: { min: 3970, max: 6330, span: 2360, avg: 4861.5, read: "noisy_or_floating" }
+    A3: { min: 17700, max: 17727, span: 27, avg: 17712.1, read: "stable" }
+  }
+}

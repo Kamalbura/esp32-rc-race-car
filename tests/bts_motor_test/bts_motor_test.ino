@@ -11,7 +11,7 @@ struct BTS {
 };
 
 BTS leftMotor  = {15, 16, 17, 18, 0, 1};
-BTS rightMotor = { 9, 36, 11, 12, 2, 3};
+BTS rightMotor = { 9, 10, 11, 12, 2, 3};
 
 #define MOTOR_PWM_FREQ 20000
 #define MOTOR_PWM_BITS 8

@@ -6,7 +6,7 @@ the same name as the `.ino` file inside it.
 ## Main Sketches
 
 - `transmitter_code/transmitter_code.ino`: ESP32-S3 handheld transmitter. Reads
-  the ADS1115 joystick inputs, rotary encoder, optional ST7789 SPI display, then
+  the ADS1115 joystick inputs, rotary encoder, 128 x 128 ST7735 SPI display, then
   sends control packets over ESP-NOW.
 - `receiver_code/receiver_code.ino`: basic car receiver. Receives ESP-NOW
   packets and drives the two BTS motor modules with the same tank-mix logic from
@@ -23,6 +23,24 @@ the same name as the `.ino` file inside it.
 - `tests/bts_motor_test/bts_motor_test.ino`
 - `tests/transmitter_pot_test/transmitter_pot_test.ino`
 - `tests/spi_display_128x128_test/spi_display_128x128_test.ino`
+- `tests/transmitter_guided_calibration_test/transmitter_guided_calibration_test.ino`
+
+## Current Components
+
+| Side | Component | Purpose | Test Code |
+| --- | --- | --- | --- |
+| Transmitter | ESP32-S3 Dev Module | ESP-NOW controller brain | `tests/espnow_transmitter_test` |
+| Transmitter | ADS1115 | Four raw analog joystick/pot channels | `tests/transmitter_pot_test`, `tests/transmitter_guided_calibration_test` |
+| Transmitter | Two joystick modules | Throttle, steering, modes, aux control | `tests/transmitter_guided_calibration_test` |
+| Transmitter | Rotary encoder with switch | Speed limit, mode/config navigation, capture button | `tests/transmitter_guided_calibration_test` |
+| Transmitter | 1.44 inch 128 x 128 ST7735 SPI TFT | Live values and configuration display | `tests/spi_display_128x128_test` |
+| Transmitter | Built-in RGB LED | Link/kill/status light | `tests/espnow_transmitter_test`, `transmitter_code` |
+| Receiver/car | ESP32-S3 Dev Module | ESP-NOW car controller | `tests/espnow_receiver_test` |
+| Receiver/car | Two BTS7960/BTS motor drivers | Left and right 555 motor control | `tests/bts_motor_test` |
+| Receiver/car | Two 555 500 RPM geared motors | Drive motors | `tests/bts_motor_test`, `receiver_code` |
+| Receiver/car | 16-pixel RGB LED strip | Car status/turn/brake lights | `receiver_code`, `receiver_code_advanced_mpu` |
+| Receiver/car | Active buzzer | Power-on and test confirmations | `receiver_code`, `receiver_code_advanced_mpu` |
+| Receiver/car | MPU6050 | Advanced yaw/turn sensing | `receiver_code_advanced_mpu` |
 
 ## ESP-NOW Raw ADC Test
 
@@ -82,9 +100,9 @@ broadcast packets are not encrypted, so these tests use only the hardcoded
 unicast peer MAC. Change the PMK and LMK before competition use.
 
 The transmitter test display is configured for a `128 x 128` ST7735 SPI screen
-with `initR(INITR_144GREENTAB)`, small text, and `DISPLAY_ROTATION 0`. If the
-screen is still upside down on your physical mount, change `DISPLAY_ROTATION` in
-`tests/espnow_transmitter_test` to `1`, `2`, or `3`.
+with `initR(INITR_144GREENTAB)`, small text, and `DISPLAY_ROTATION 0` because
+the screen is mounted upside down. If the physical mount changes, try rotation
+`0`, `1`, or `3`.
 
 Latest 30-second idle capture from COM3 after the ST7735 update:
 
@@ -102,6 +120,22 @@ If the display is still wrong, upload
 `tests/spi_display_128x128_test/spi_display_128x128_test.ino` to the transmitter.
 It cycles color bars through rotations `0..3`, which makes it easy to identify
 the correct physical orientation.
+
+For full joystick calibration, upload
+`tests/transmitter_guided_calibration_test/transmitter_guided_calibration_test.ino`
+to the transmitter after the receiver test is running on COM4. The display and
+Serial Monitor will ask for:
+
+1. Center all controls.
+2. Right joystick up, down, left, right.
+3. Left joystick up, down, left, right.
+4. Encoder clockwise.
+5. Encoder counterclockwise.
+6. Encoder button press.
+
+For each prompt, hold the requested position and press the encoder switch. The
+sketch prints a `CAL_JSON_BEGIN` / `CAL_JSON_END` block that can be pasted into
+`calibration/transmitter_observations.hjson`.
 
 ## Important Setup Notes
 
@@ -123,9 +157,14 @@ the correct physical orientation.
 | Receiver failsafe | `120 ms` | `receiver_code`, `receiver_code_advanced_mpu` |
 | First-link mode | Broadcast MAC `FF:FF:FF:FF:FF:FF` | `transmitter_code` |
 
-For racing, use direct unicast instead of broadcast. Upload the receiver first,
-read its MAC address from Serial Monitor, then put that MAC in `RECEIVER_MAC` in
-`transmitter_code/transmitter_code.ino`.
+The current final sketches are already locked to the known bench pair:
+
+| Board | Role | Hardcoded MAC |
+| --- | --- | --- |
+| COM3 | Transmitter | `B4:3A:45:3F:46:BC` |
+| COM4 | Receiver | `B4:3A:45:3F:A4:E8` |
+
+They also use the same PMK/LMK secure unicast keys as the secure test sketches.
 
 ## Transmitter ESP32-S3 Pinout
 
@@ -144,13 +183,14 @@ This is the handheld controller board. These pins are used by
 | ADC input 3 | ADS1115 `A3` | Joystick/pot axis wire | Mode input |
 | SPI clock | Display `SCK` / `SCL` | `GPIO 12` | SPI display clock |
 | SPI data out | Display `MOSI` / `SDA` | `GPIO 11` | ESP32-S3 to display |
-| SPI data in | Display `MISO` | `GPIO 13` | Not used by most ST7789 displays, reserved in code |
-| Display select | Display `CS` | `GPIO 15` | ST7789 chip select |
-| Display data/command | Display `DC` | `GPIO 16` | ST7789 command/data pin |
-| Display reset | Display `RST` / `RES` | `GPIO 17` | ST7789 reset pin |
+| SPI data in | Display `MISO` | `GPIO 13` | Not used by most ST7735 displays, reserved in code |
+| Display select | Display `CS` | `GPIO 15` | ST7735 chip select |
+| Display data/command | Display `DC` | `GPIO 16` | ST7735 command/data pin |
+| Display reset | Display `RST` / `RES` | `GPIO 17` | ST7735 reset pin |
 | Encoder A | Rotary encoder `CLK` / `A` | `GPIO 4` | Uses internal pullup |
 | Encoder B | Rotary encoder `DT` / `B` | `GPIO 5` | Uses internal pullup |
 | Encoder switch | Rotary encoder `SW` | `GPIO 6` | Press toggles kill/armed |
+| Built-in RGB LED data | ESP32-S3 onboard RGB | `GPIO 48` | Assumed common ESP32-S3 Dev Module WS2812 pin |
 | Logic power | ADS1115 `VDD`, encoder `+` | `3V3` | Keep ADC signals at ESP32-safe voltage |
 | Display power | Display `VCC` | `5V` or `3V3` | Match your display module requirement |
 | Ground | All module `GND` pins | `GND` | All grounds must be common |
@@ -160,6 +200,18 @@ The transmitter code assumes a `128 x 128` ST7735 SPI display. The code uses
 128 x 128 TFT examples. If your exact display is ILI9163C or another controller
 sold as a similar 128 x 128 module, the wiring can stay the same but the display
 library/object must change.
+
+The transmitter display is mounted upside down, so the current code uses
+`DISPLAY_ROTATION 0`.
+
+Transmitter built-in RGB status:
+
+| LED Color | Meaning |
+| --- | --- |
+| Red pulse | Kill is active |
+| Yellow | Packet send is not healthy or ACK is pending in raw test |
+| Green | Link and telemetry/ACK are healthy |
+| Blue | Transmitter is running but receiver telemetry/ACK is not confirmed yet |
 
 ## Receiver ESP32-S3 Pinout
 
@@ -174,10 +226,11 @@ This is the car board. These pins are used by `receiver_code/receiver_code.ino`,
 | Left driver left enable | Left BTS `L_EN` | `GPIO 17` | Set `HIGH` after PWM starts at zero |
 | Left driver right enable | Left BTS `R_EN` | `GPIO 18` | Set `HIGH` after PWM starts at zero |
 | Right motor forward PWM | Right BTS `LPWM` | `GPIO 9` | PWM channel `2`, `20 kHz`, 8-bit |
-| Right motor reverse PWM | Right BTS `RPWM` | `GPIO 36` | PWM channel `3`, `20 kHz`, 8-bit |
+| Right motor reverse PWM | Right BTS `RPWM` | `GPIO 10` | PWM channel `3`, `20 kHz`, 8-bit |
 | Right driver left enable | Right BTS `L_EN` | `GPIO 11` | Set `HIGH` after PWM starts at zero |
 | Right driver right enable | Right BTS `R_EN` | `GPIO 12` | Set `HIGH` after PWM starts at zero |
 | LED signal | NeoPixel / LED module `DIN` | `GPIO 8` | `16` LEDs in the current code |
+| Buzzer signal | Active buzzer `SIG` | `GPIO 37` | Used for boot and test confirmation beeps; only if your board exposes GPIO37 safely |
 | Battery sense | Voltage divider output | Not assigned | `BATTERY_ADC_PIN = -1` disables it |
 | Ground | BTS logic `GND`, LED `GND`, ESP `GND` | `GND` | Must be tied to motor battery negative |
 
@@ -189,6 +242,48 @@ This is the car board. These pins are used by `receiver_code/receiver_code.ino`,
 | MPU6050 I2C clock | MPU6050 `SCL` | `GPIO 2` | Advanced receiver only |
 | MPU6050 power | MPU6050 `VCC` | `3V3` or module-safe `5V` | Use what your breakout supports |
 | MPU6050 ground | MPU6050 `GND` | `GND` | Common ground |
+
+### MPU6050 Mounting Orientation
+
+Mount the MPU6050 flat on the car chassis. The current firmware assumes the
+module is rotated 90 degrees in-plane compared with the older note.
+
+| MPU Axis | Car Direction |
+| --- | --- |
+| `+Y` | Front of car |
+| `+X` | Right side of car |
+| `+Z` | Upward |
+
+With this mounting, positive gyro `Z` still means the car is yawing left, and
+negative gyro `Z` means the car is yawing right. Because the 90-degree turn
+routine uses gyro `Z`, the in-plane X/Y swap does not break yaw turn testing.
+
+### Receiver Startup And Turn Test
+
+The final receiver sketches now do a simple startup confirmation routine:
+
+1. LED strip blue sweep while booting.
+2. Two short buzzer chirps.
+3. Green confirmation if the receiver started cleanly.
+4. On the advanced MPU build, a different warning pattern is used if the MPU6050
+   is missing.
+
+The advanced receiver also exposes a simple Serial Monitor test interface at
+`115200`:
+
+| Command | Action |
+| --- | --- |
+| `h` | Print help |
+| `b` | Buzzer test |
+| `c` | Recalibrate gyro Z offset while car is still |
+| `l` | Rotate left about `90 deg` using MPU yaw integration |
+| `r` | Rotate right about `90 deg` using MPU yaw integration |
+| `s` | Stop motors immediately |
+
+Use the `l` and `r` commands with the car on a safe surface and enough room for
+an in-place differential turn. This routine is meant to validate the receiver
+wiring, motor direction, MPU yaw sign, and basic turn behavior before full race
+tuning.
 
 ## BTS Motor Driver Wiring
 
@@ -227,15 +322,50 @@ release-to-stop and during sudden reverse commands.
 Kill switch and failsafe still stop the motors immediately. Normal driving uses
 the ramp, including when the joystick is released to center.
 
+## Pin Safety Notes
+
+- `GPIO10` on ESP32-S3 is a normal GPIO and is a reasonable choice for BTS PWM.
+- `GPIO37` is more board-dependent. On some ESP32-S3 module and board variants,
+  especially octal flash or PSRAM variants, Espressif does not recommend using
+  `GPIO35` to `GPIO37` for general external wiring because those pins can be
+  tied to in-package flash or PSRAM signals.
+- If your exact board does not safely expose `GPIO37`, move the buzzer back to a
+  safer free GPIO such as `GPIO14` and update `BUZZER_PIN` in the receiver
+  sketches.
+- The transmitter rotary encoder switch uses `GPIO6` with `INPUT_PULLUP`, so the
+  encoder switch must short `GPIO6` to `GND` when pressed. If it is wired to
+  `3V3` instead, or the encoder module ground is missing, the switch will appear
+  dead.
+
+## Encoder Switch Check
+
+The final transmitter code now exposes encoder switch diagnostics:
+
+- Screen bottom line: `SW UP` or `SW DOWN`
+- Serial Monitor: `sw=0/1 swCount=<n>`
+
+If pressing the encoder does not change these values:
+
+1. Check encoder `SW` really goes to `GPIO6`.
+2. Check encoder ground is common with ESP32-S3 ground.
+3. Check the encoder switch terminal pair, because many encoder modules expose
+   separate pins for the push switch and for the A/B quadrature outputs.
+4. Upload `tests/transmitter_pot_test/transmitter_pot_test.ino` and watch
+   `SW=PRESSED` / `SW=RELEASED` in Serial Monitor.
+
 ## Validation Notes
 
 - The BTS pin map is identical in `receiver_code`, `receiver_code_advanced_mpu`,
   and `tests/bts_motor_test`.
 - The transmitter ADS1115 and encoder pin map is identical in `transmitter_code`
   and `tests/transmitter_pot_test`.
+- The transmitter built-in RGB LED is assumed to be a WS2812-style LED on
+  `GPIO 48`, which is common on ESP32-S3 Dev Module boards. If your board uses a
+  different onboard RGB pin, update `BUILTIN_RGB_PIN`.
 - The receiver and transmitter are separate ESP32-S3 boards, so reused GPIO
   numbers between them are not conflicts.
-- `GPIO 36` is used because it was already in the previous working sketch. Make
-  sure your exact ESP32-S3 dev module exposes `GPIO 36` and does not reserve it
-  for onboard flash, PSRAM, or another board feature.
+- `GPIO10` now drives the right BTS `RPWM`.
+- `GPIO37` is used for the buzzer only if your exact ESP32-S3 board exposes it
+  as a safe general-purpose pin. Check your module variant before committing to
+  that wiring.
 - ESP-NOW does not need any extra wire between transmitter and receiver.

@@ -11,6 +11,18 @@
 #define FAILSAFE_MS 120
 #define RC_PACKET_VERSION 1
 
+uint8_t TRANSMITTER_MAC[6] = {0xB4, 0x3A, 0x45, 0x3F, 0x46, 0xBC};
+
+const uint8_t ESPNOW_PMK[16] = {
+  0x52, 0x43, 0x52, 0x41, 0x43, 0x45, 0x50, 0x4D,
+  0x4B, 0x32, 0x30, 0x32, 0x36, 0x30, 0x34, 0x15
+};
+
+const uint8_t ESPNOW_LMK[16] = {
+  0x42, 0x54, 0x53, 0x45, 0x53, 0x50, 0x4E, 0x4F,
+  0x57, 0x52, 0x41, 0x57, 0x41, 0x44, 0x43, 0x31
+};
+
 /* ================= BTS MOTOR PINS ================= */
 struct BTS {
   uint8_t lpwm;
@@ -23,7 +35,7 @@ struct BTS {
 
 // Same BTS connections from the previous working sketch.
 BTS leftMotor  = {15, 16, 17, 18, 0, 1};
-BTS rightMotor = { 9, 36, 11, 12, 2, 3};
+BTS rightMotor = { 9, 10, 11, 12, 2, 3};
 
 #define MOTOR_PWM_FREQ 20000
 #define MOTOR_PWM_BITS 8
@@ -37,6 +49,10 @@ BTS rightMotor = { 9, 36, 11, 12, 2, 3};
 #define NUM_PIXELS 16
 Adafruit_NeoPixel strip(NUM_PIXELS, PIXEL_PIN, NEO_GRB + NEO_KHZ800);
 
+/* ================= BUZZER ================= */
+#define BUZZER_PIN 37
+#define BUZZER_ACTIVE_HIGH 1
+
 /* ================= OPTIONAL BATTERY TELEMETRY ================= */
 const int BATTERY_ADC_PIN = -1;       // Set to an ADC pin if you add a divider.
 const float BATTERY_DIVIDER_RATIO = 1.0f;
@@ -44,6 +60,7 @@ const float BATTERY_DIVIDER_RATIO = 1.0f;
 #define BTN_KILL 0x01
 #define BTN_LIGHTS 0x02
 #define BTN_AUX1 0x04
+#define BTN_CALIBRATION BTN_AUX1
 
 struct __attribute__((packed)) ControlPacket {
   uint8_t version;
@@ -75,9 +92,7 @@ uint32_t lastPacketMs = 0;
 bool packetValid = false;
 
 uint8_t controllerMac[6] = {0};
-uint8_t pendingControllerMac[6] = {0};
 bool controllerKnown = false;
-volatile bool pendingPeer = false;
 
 int16_t lastLeftCommand = 0;
 int16_t lastRightCommand = 0;
@@ -119,35 +134,54 @@ bool sameMac(const uint8_t *a, const uint8_t *b) {
   return memcmp(a, b, 6) == 0;
 }
 
+void buzzerWrite(bool on) {
+  digitalWrite(BUZZER_PIN, (on == BUZZER_ACTIVE_HIGH) ? HIGH : LOW);
+}
+
+void buzz(uint16_t onMs, uint16_t offMs = 0) {
+  buzzerWrite(true);
+  delay(onMs);
+  buzzerWrite(false);
+  if (offMs > 0) delay(offMs);
+}
+
+void startupPattern() {
+  strip.clear();
+  for (int i = 0; i < NUM_PIXELS; i++) {
+    strip.setPixelColor(i, strip.Color(0, 0, 80));
+    strip.show();
+    delay(20);
+  }
+  buzz(70, 60);
+  buzz(70, 60);
+  for (int i = 0; i < NUM_PIXELS; i++) strip.setPixelColor(i, strip.Color(0, 80, 0));
+  strip.show();
+  buzz(140, 0);
+  delay(120);
+  strip.clear();
+  strip.show();
+}
+
 bool addPeer(const uint8_t *mac) {
   if (esp_now_is_peer_exist(mac)) return true;
 
   esp_now_peer_info_t peer = {};
   memcpy(peer.peer_addr, mac, 6);
   peer.channel = ESPNOW_CHANNEL;
-  peer.encrypt = false;
+  peer.encrypt = true;
   peer.ifidx = WIFI_IF_STA;
+  memcpy(peer.lmk, ESPNOW_LMK, sizeof(ESPNOW_LMK));
 
   esp_err_t result = esp_now_add_peer(&peer);
   return result == ESP_OK || result == ESP_ERR_ESPNOW_EXIST;
 }
 
-void rememberControllerIfNeeded() {
-  if (!pendingPeer) return;
-
-  uint8_t mac[6];
-  portENTER_CRITICAL(&packetMux);
-  memcpy(mac, pendingControllerMac, 6);
-  pendingPeer = false;
-  portEXIT_CRITICAL(&packetMux);
-
-  if (!controllerKnown || !sameMac(mac, controllerMac)) {
-    memcpy(controllerMac, mac, 6);
-    controllerKnown = addPeer(controllerMac);
-    Serial.print("Controller learned: ");
-    printMac(controllerMac);
-    Serial.println(controllerKnown ? " peer OK" : " peer add failed");
-  }
+void setupControllerPeer() {
+  memcpy(controllerMac, TRANSMITTER_MAC, sizeof(controllerMac));
+  controllerKnown = addPeer(controllerMac);
+  Serial.print("Controller peer: ");
+  printMac(controllerMac);
+  Serial.println(controllerKnown ? " secure OK" : " secure add failed");
 }
 
 void pwmAttach(uint8_t pin, uint8_t channel) {
@@ -223,10 +257,15 @@ void updateMotorOutputs(int targetLeft, int targetRight) {
   drive(rightMotor, lastRightCommand);
 }
 
-void updateLights(float steering, bool linkOk, bool kill, bool lightsOn) {
+void updateLights(float steering, bool linkOk, bool kill, bool lightsOn, bool calibrationMode) {
   static uint32_t lastUpdate = 0;
   if (millis() - lastUpdate < 40) return;
   lastUpdate = millis();
+
+  const uint8_t frontArc[4] = {14, 15, 0, 1};
+  const uint8_t rightArc[4] = {2, 3, 4, 5};
+  const uint8_t rearArc[4] = {6, 7, 8, 9};
+  const uint8_t leftArc[4] = {10, 11, 12, 13};
 
   strip.clear();
   if (!linkOk) {
@@ -234,14 +273,26 @@ void updateLights(float steering, bool linkOk, bool kill, bool lightsOn) {
     for (int i = 0; i < NUM_PIXELS; i++) strip.setPixelColor(i, strip.Color(r, 0, 0));
   } else if (kill) {
     for (int i = 0; i < NUM_PIXELS; i++) strip.setPixelColor(i, strip.Color(70, 0, 0));
-  } else if (lightsOn) {
-    int centerStart = NUM_PIXELS / 3;
-    int centerEnd = (NUM_PIXELS * 2) / 3;
-    for (int i = centerStart; i < centerEnd; i++) strip.setPixelColor(i, strip.Color(150, 150, 150));
+  } else {
+    if (lightsOn) {
+      for (uint8_t i = 0; i < 4; i++) {
+        strip.setPixelColor(frontArc[i], strip.Color(150, 150, 150));
+        strip.setPixelColor(rearArc[i], strip.Color(60, 0, 0));
+      }
+    }
+    if (calibrationMode) {
+      uint8_t blue = (millis() / 180) % 2 ? 90 : 25;
+      for (int i = 0; i < NUM_PIXELS; i++) {
+        uint32_t existing = strip.getPixelColor(i);
+        uint8_t r = (existing >> 16) & 0xFF;
+        uint8_t g = (existing >> 8) & 0xFF;
+        strip.setPixelColor(i, strip.Color(r / 2, g / 2, blue));
+      }
+    }
     if (steering > 0.15f) {
-      for (int i = 0; i < centerStart; i++) strip.setPixelColor(i, strip.Color(255, 60, 0));
+      for (uint8_t i = 0; i < 4; i++) strip.setPixelColor(rightArc[i], strip.Color(255, 60, 0));
     } else if (steering < -0.15f) {
-      for (int i = centerEnd; i < NUM_PIXELS; i++) strip.setPixelColor(i, strip.Color(255, 60, 0));
+      for (uint8_t i = 0; i < 4; i++) strip.setPixelColor(leftArc[i], strip.Color(255, 60, 0));
     }
   }
   strip.show();
@@ -275,6 +326,7 @@ void onControlRecv(const esp_now_recv_info_t *info, const uint8_t *data, int len
 #else
 void onControlRecv(const uint8_t *mac, const uint8_t *data, int len) {
 #endif
+  if (!sameMac(mac, TRANSMITTER_MAC)) return;
   if (len != sizeof(ControlPacket)) return;
 
   ControlPacket packet;
@@ -286,8 +338,6 @@ void onControlRecv(const uint8_t *mac, const uint8_t *data, int len) {
   latestPacket = packet;
   lastPacketMs = millis();
   packetValid = true;
-  memcpy(pendingControllerMac, mac, 6);
-  pendingPeer = true;
   portEXIT_CRITICAL(&packetMux);
 }
 
@@ -303,6 +353,7 @@ void setupEspNow() {
     while (true) delay(1000);
   }
 
+  esp_now_set_pmk(ESPNOW_PMK);
   esp_now_register_recv_cb(onControlRecv);
 }
 
@@ -333,20 +384,25 @@ void setup() {
   Serial.begin(115200);
   delay(400);
 
+  pinMode(BUZZER_PIN, OUTPUT);
+  buzzerWrite(false);
   setupMotors();
   strip.begin();
   strip.setBrightness(100);
   strip.show();
   setupEspNow();
+  setupControllerPeer();
+  startupPattern();
 
   Serial.print("Receiver MAC: ");
   Serial.println(WiFi.macAddress());
+  Serial.print("Locked transmitter MAC: ");
+  printMac(TRANSMITTER_MAC);
+  Serial.println();
   Serial.println("Waiting for ESP-NOW control packets...");
 }
 
 void loop() {
-  rememberControllerIfNeeded();
-
   ControlPacket packet;
   bool hasPacket;
   uint32_t ageMs;
@@ -360,13 +416,15 @@ void loop() {
   bool linkOk = hasPacket && ageMs <= FAILSAFE_MS;
   bool kill = !linkOk || (packet.buttons & BTN_KILL);
   bool lightsOn = packet.buttons & BTN_LIGHTS;
+  bool calibrationMode = packet.buttons & BTN_CALIBRATION;
 
   if (kill) {
     stopMotors();
   } else {
     float throttle = packet.throttle / 1000.0f;
     float steering = packet.steering / 1000.0f;
-    float limit = constrain(packet.speedLimit / 1000.0f, 0.0f, 1.0f);
+    float limit = constrain(packet.speedLimit / 255.0f, 0.0f, 1.0f);
+    if (calibrationMode) limit = min(limit, 0.5f);
 
     if (fabs(throttle) < MOTOR_DEADBAND) throttle = 0;
     if (fabs(steering) < MOTOR_DEADBAND) steering = 0;
@@ -384,13 +442,13 @@ void loop() {
     updateMotorOutputs(targetLeft, targetRight);
   }
 
-  updateLights(packet.steering / 1000.0f, linkOk, kill, lightsOn);
+  updateLights(packet.steering / 1000.0f, linkOk, kill, lightsOn, calibrationMode);
   sendTelemetry(packet, linkOk);
 
   if (millis() - lastSerialMs > 500) {
     lastSerialMs = millis();
-    Serial.printf("link=%u age=%lu kill=%u thr=%d steer=%d left=%d right=%d limit=%u mode=%u\n",
-                  linkOk, ageMs, kill, packet.throttle, packet.steering,
+    Serial.printf("link=%u age=%lu kill=%u cal=%u thr=%d steer=%d left=%d right=%d spd=%u mode=%u\n",
+                  linkOk, ageMs, kill, calibrationMode ? 1 : 0, packet.throttle, packet.steering,
                   lastLeftCommand, lastRightCommand, packet.speedLimit, packet.mode);
   }
 }

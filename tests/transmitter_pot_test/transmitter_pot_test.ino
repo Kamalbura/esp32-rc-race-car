@@ -9,6 +9,7 @@
 #define ENCODER_A_PIN 4
 #define ENCODER_B_PIN 5
 #define ENCODER_SW_PIN 6
+#define BOOT_BUTTON_PIN 0
 
 Adafruit_ADS1115 ads;
 
@@ -68,6 +69,7 @@ void setup() {
   pinMode(ENCODER_A_PIN, INPUT_PULLUP);
   pinMode(ENCODER_B_PIN, INPUT_PULLUP);
   pinMode(ENCODER_SW_PIN, INPUT_PULLUP);
+  pinMode(BOOT_BUTTON_PIN, INPUT_PULLUP);
 
   Wire.begin(I2C_SDA_PIN, I2C_SCL_PIN);
   Wire.setClock(400000);
@@ -110,8 +112,13 @@ void loop() {
                   i, raw, minRaw[i], centerRaw[i], maxRaw[i], mapped);
   }
 
-  Serial.printf("ENC A=%u B=%u SW=%u\n",
+  bool swPressed = digitalRead(ENCODER_SW_PIN) == LOW;
+  bool bootPressed = digitalRead(BOOT_BUTTON_PIN) == LOW;
+  Serial.printf("ENC A=%u B=%u SWraw=%u SW=%s BOOTraw=%u BOOT=%s\n",
                 digitalRead(ENCODER_A_PIN),
                 digitalRead(ENCODER_B_PIN),
-                digitalRead(ENCODER_SW_PIN));
+                digitalRead(ENCODER_SW_PIN),
+                swPressed ? "PRESSED" : "RELEASED",
+                digitalRead(BOOT_BUTTON_PIN),
+                bootPressed ? "PRESSED" : "RELEASED");
 }

@@ -14,12 +14,29 @@
 #define FAILSAFE_MS 120
 #define RC_PACKET_VERSION 1
 
+uint8_t TRANSMITTER_MAC[6] = {0xB4, 0x3A, 0x45, 0x3F, 0x46, 0xBC};
+
+const uint8_t ESPNOW_PMK[16] = {
+  0x52, 0x43, 0x52, 0x41, 0x43, 0x45, 0x50, 0x4D,
+  0x4B, 0x32, 0x30, 0x32, 0x36, 0x30, 0x34, 0x15
+};
+
+const uint8_t ESPNOW_LMK[16] = {
+  0x42, 0x54, 0x53, 0x45, 0x53, 0x50, 0x4E, 0x4F,
+  0x57, 0x52, 0x41, 0x57, 0x41, 0x44, 0x43, 0x31
+};
+
 /* ================= MPU6050 CONFIG ================= */
 #define MPU_SDA_PIN 1
 #define MPU_SCL_PIN 2
 #define ENABLE_YAW_ASSIST 0
 #define MAX_TARGET_YAW_DPS 220.0f
 #define YAW_ASSIST_GAIN 0.003f
+#define TURN_TEST_MIN_PWM 90
+#define TURN_TEST_MAX_PWM 170
+#define TURN_TEST_TIMEOUT_MS 5000
+#define TURN_TEST_TOLERANCE_DEG 4.0f
+#define TURN_TEST_SETTLE_DPS 18.0f
 
 Adafruit_MPU6050 mpu;
 bool mpuReady = false;
@@ -37,7 +54,7 @@ struct BTS {
 };
 
 BTS leftMotor  = {15, 16, 17, 18, 0, 1};
-BTS rightMotor = { 9, 36, 11, 12, 2, 3};
+BTS rightMotor = { 9, 10, 11, 12, 2, 3};
 
 #define MOTOR_PWM_FREQ 20000
 #define MOTOR_PWM_BITS 8
@@ -51,12 +68,17 @@ BTS rightMotor = { 9, 36, 11, 12, 2, 3};
 #define NUM_PIXELS 16
 Adafruit_NeoPixel strip(NUM_PIXELS, PIXEL_PIN, NEO_GRB + NEO_KHZ800);
 
+/* ================= BUZZER ================= */
+#define BUZZER_PIN 37
+#define BUZZER_ACTIVE_HIGH 1
+
 const int BATTERY_ADC_PIN = -1;
 const float BATTERY_DIVIDER_RATIO = 1.0f;
 
 #define BTN_KILL 0x01
 #define BTN_LIGHTS 0x02
 #define BTN_AUX1 0x04
+#define BTN_CALIBRATION BTN_AUX1
 
 struct __attribute__((packed)) ControlPacket {
   uint8_t version;
@@ -88,9 +110,7 @@ uint32_t lastPacketMs = 0;
 bool packetValid = false;
 
 uint8_t controllerMac[6] = {0};
-uint8_t pendingControllerMac[6] = {0};
 bool controllerKnown = false;
-volatile bool pendingPeer = false;
 
 int16_t lastLeftCommand = 0;
 int16_t lastRightCommand = 0;
@@ -100,6 +120,7 @@ uint32_t lastTelemetryMs = 0;
 uint32_t lastSerialMs = 0;
 uint32_t lastMpuMs = 0;
 uint32_t lastMotorRampMs = 0;
+bool turnTestActive = false;
 
 uint16_t crc16Ccitt(const uint8_t *data, size_t len) {
   uint16_t crc = 0xFFFF;
@@ -133,35 +154,61 @@ bool sameMac(const uint8_t *a, const uint8_t *b) {
   return memcmp(a, b, 6) == 0;
 }
 
+void buzzerWrite(bool on) {
+  digitalWrite(BUZZER_PIN, (on == BUZZER_ACTIVE_HIGH) ? HIGH : LOW);
+}
+
+void buzz(uint16_t onMs, uint16_t offMs = 0) {
+  buzzerWrite(true);
+  delay(onMs);
+  buzzerWrite(false);
+  if (offMs > 0) delay(offMs);
+}
+
+void startupPattern(bool mpuOk) {
+  strip.clear();
+  for (int i = 0; i < NUM_PIXELS; i++) {
+    strip.setPixelColor(i, strip.Color(0, 0, 80));
+    strip.show();
+    delay(20);
+  }
+  buzz(70, 60);
+  buzz(70, 60);
+  if (mpuOk) {
+    for (int i = 0; i < NUM_PIXELS; i++) strip.setPixelColor(i, strip.Color(0, 80, 0));
+    strip.show();
+    buzz(140, 0);
+  } else {
+    for (int i = 0; i < NUM_PIXELS; i++) strip.setPixelColor(i, strip.Color(80, 40, 0));
+    strip.show();
+    buzz(60, 40);
+    buzz(60, 0);
+  }
+  delay(120);
+  strip.clear();
+  strip.show();
+}
+
 bool addPeer(const uint8_t *mac) {
   if (esp_now_is_peer_exist(mac)) return true;
 
   esp_now_peer_info_t peer = {};
   memcpy(peer.peer_addr, mac, 6);
   peer.channel = ESPNOW_CHANNEL;
-  peer.encrypt = false;
+  peer.encrypt = true;
   peer.ifidx = WIFI_IF_STA;
+  memcpy(peer.lmk, ESPNOW_LMK, sizeof(ESPNOW_LMK));
 
   esp_err_t result = esp_now_add_peer(&peer);
   return result == ESP_OK || result == ESP_ERR_ESPNOW_EXIST;
 }
 
-void rememberControllerIfNeeded() {
-  if (!pendingPeer) return;
-
-  uint8_t mac[6];
-  portENTER_CRITICAL(&packetMux);
-  memcpy(mac, pendingControllerMac, 6);
-  pendingPeer = false;
-  portEXIT_CRITICAL(&packetMux);
-
-  if (!controllerKnown || !sameMac(mac, controllerMac)) {
-    memcpy(controllerMac, mac, 6);
-    controllerKnown = addPeer(controllerMac);
-    Serial.print("Controller learned: ");
-    printMac(controllerMac);
-    Serial.println(controllerKnown ? " peer OK" : " peer add failed");
-  }
+void setupControllerPeer() {
+  memcpy(controllerMac, TRANSMITTER_MAC, sizeof(controllerMac));
+  controllerKnown = addPeer(controllerMac);
+  Serial.print("Controller peer: ");
+  printMac(controllerMac);
+  Serial.println(controllerKnown ? " secure OK" : " secure add failed");
 }
 
 void pwmAttach(uint8_t pin, uint8_t channel) {
@@ -271,10 +318,167 @@ void updateMpu() {
   yawRateDps = gyro.gyro.z * 57.2957795f - gyroZOffsetDps;
 }
 
-void updateLights(float steering, bool linkOk, bool kill, bool lightsOn) {
+void recalibrateGyro() {
+  if (!mpuReady) return;
+  stopMotors();
+  delay(150);
+  Serial.println("Recalibrating gyro. Keep car still.");
+  float sum = 0.0f;
+  for (int i = 0; i < 250; i++) {
+    sensors_event_t accel, gyro, temp;
+    mpu.getEvent(&accel, &gyro, &temp);
+    sum += gyro.gyro.z * 57.2957795f;
+    delay(4);
+  }
+  gyroZOffsetDps = sum / 250.0f;
+  yawRateDps = 0.0f;
+  Serial.printf("New gyro Z offset %.2f dps\n", gyroZOffsetDps);
+  buzz(50, 50);
+  buzz(120, 0);
+}
+
+bool executeTurnDegrees(float targetDeg) {
+  if (!mpuReady) {
+    Serial.println("Turn test unavailable: MPU6050 not ready.");
+    buzz(50, 50);
+    buzz(50, 0);
+    return false;
+  }
+
+  stopMotors();
+  delay(120);
+  updateMpu();
+  turnTestActive = true;
+  float integratedYawDeg = 0.0f;
+  uint32_t startMs = millis();
+  uint32_t prevMs = startMs;
+
+  Serial.printf("Turn test start: target %.1f deg\n", targetDeg);
+  buzz(70, 40);
+
+  while (millis() - startMs < TURN_TEST_TIMEOUT_MS) {
+    updateMpu();
+    uint32_t now = millis();
+    float dt = (now - prevMs) / 1000.0f;
+    if (dt > 0.001f) {
+      integratedYawDeg += yawRateDps * dt;
+      prevMs = now;
+    }
+
+    float remaining = targetDeg - integratedYawDeg;
+    if (fabs(remaining) <= TURN_TEST_TOLERANCE_DEG && fabs(yawRateDps) <= TURN_TEST_SETTLE_DPS) {
+      stopMotors();
+      turnTestActive = false;
+      Serial.printf("Turn complete: yaw=%.1f deg\n", integratedYawDeg);
+      buzz(120, 0);
+      return true;
+    }
+
+    float mag = constrain(fabs(remaining) / 90.0f, 0.0f, 1.0f);
+    int pwm = (int)lroundf(TURN_TEST_MIN_PWM + (TURN_TEST_MAX_PWM - TURN_TEST_MIN_PWM) * mag);
+    int signedPwm = remaining > 0 ? pwm : -pwm;
+    updateMotorOutputs(-signedPwm, signedPwm);
+    delay(5);
+  }
+
+  stopMotors();
+  turnTestActive = false;
+  Serial.printf("Turn timeout: yaw=%.1f deg target=%.1f deg\n", integratedYawDeg, targetDeg);
+  buzz(50, 50);
+  buzz(50, 50);
+  buzz(50, 0);
+  return false;
+}
+
+void printSerialHelp() {
+  Serial.println("Receiver serial commands:");
+  Serial.println("  h = help");
+  Serial.println("  b = buzzer test");
+  Serial.println("  c = recalibrate gyro (car still)");
+  Serial.println("  i = print MPU idle snapshot");
+  Serial.println("  l = turn left 90 deg");
+  Serial.println("  p = RGB ring test");
+  Serial.println("  r = turn right 90 deg");
+  Serial.println("  s = stop motors");
+}
+
+void handleSerialCommands() {
+  while (Serial.available() > 0) {
+    char cmd = (char)tolower(Serial.read());
+    switch (cmd) {
+      case 'h':
+        printSerialHelp();
+        break;
+      case 'b':
+        buzz(80, 60);
+        buzz(120, 0);
+        break;
+      case 'c':
+        recalibrateGyro();
+        break;
+      case 'i':
+        Serial.printf("mpuReady=%u gyroZOffset=%.2f yawRate=%.2f dps\n",
+                      mpuReady ? 1 : 0,
+                      gyroZOffsetDps,
+                      yawRateDps);
+        break;
+      case 'l':
+        executeTurnDegrees(90.0f);
+        break;
+      case 'p':
+        strip.clear();
+        strip.setPixelColor(14, strip.Color(180, 180, 180));
+        strip.setPixelColor(15, strip.Color(180, 180, 180));
+        strip.setPixelColor(0, strip.Color(180, 180, 180));
+        strip.setPixelColor(1, strip.Color(180, 180, 180));
+        strip.show();
+        delay(250);
+        strip.clear();
+        strip.setPixelColor(2, strip.Color(255, 90, 0));
+        strip.setPixelColor(3, strip.Color(255, 90, 0));
+        strip.setPixelColor(4, strip.Color(255, 90, 0));
+        strip.setPixelColor(5, strip.Color(255, 90, 0));
+        strip.show();
+        delay(250);
+        strip.clear();
+        strip.setPixelColor(6, strip.Color(180, 0, 0));
+        strip.setPixelColor(7, strip.Color(180, 0, 0));
+        strip.setPixelColor(8, strip.Color(180, 0, 0));
+        strip.setPixelColor(9, strip.Color(180, 0, 0));
+        strip.show();
+        delay(250);
+        strip.clear();
+        strip.setPixelColor(10, strip.Color(255, 90, 0));
+        strip.setPixelColor(11, strip.Color(255, 90, 0));
+        strip.setPixelColor(12, strip.Color(255, 90, 0));
+        strip.setPixelColor(13, strip.Color(255, 90, 0));
+        strip.show();
+        delay(250);
+        strip.clear();
+        strip.show();
+        break;
+      case 'r':
+        executeTurnDegrees(-90.0f);
+        break;
+      case 's':
+        stopMotors();
+        Serial.println("Motors stopped.");
+        break;
+      default:
+        break;
+    }
+  }
+}
+
+void updateLights(float steering, bool linkOk, bool kill, bool lightsOn, bool calibrationMode) {
   static uint32_t lastUpdate = 0;
   if (millis() - lastUpdate < 40) return;
   lastUpdate = millis();
+
+  const uint8_t frontArc[4] = {14, 15, 0, 1};
+  const uint8_t rightArc[4] = {2, 3, 4, 5};
+  const uint8_t rearArc[4] = {6, 7, 8, 9};
+  const uint8_t leftArc[4] = {10, 11, 12, 13};
 
   strip.clear();
   if (!linkOk) {
@@ -282,14 +486,26 @@ void updateLights(float steering, bool linkOk, bool kill, bool lightsOn) {
     for (int i = 0; i < NUM_PIXELS; i++) strip.setPixelColor(i, strip.Color(r, 0, 0));
   } else if (kill) {
     for (int i = 0; i < NUM_PIXELS; i++) strip.setPixelColor(i, strip.Color(70, 0, 0));
-  } else if (lightsOn) {
-    int centerStart = NUM_PIXELS / 3;
-    int centerEnd = (NUM_PIXELS * 2) / 3;
-    for (int i = centerStart; i < centerEnd; i++) strip.setPixelColor(i, strip.Color(150, 150, 150));
+  } else {
+    if (lightsOn) {
+      for (uint8_t i = 0; i < 4; i++) {
+        strip.setPixelColor(frontArc[i], strip.Color(150, 150, 150));
+        strip.setPixelColor(rearArc[i], strip.Color(60, 0, 0));
+      }
+    }
+    if (calibrationMode) {
+      uint8_t blue = (millis() / 180) % 2 ? 90 : 25;
+      for (int i = 0; i < NUM_PIXELS; i++) {
+        uint32_t existing = strip.getPixelColor(i);
+        uint8_t r = (existing >> 16) & 0xFF;
+        uint8_t g = (existing >> 8) & 0xFF;
+        strip.setPixelColor(i, strip.Color(r / 2, g / 2, blue));
+      }
+    }
     if (steering > 0.15f) {
-      for (int i = 0; i < centerStart; i++) strip.setPixelColor(i, strip.Color(255, 60, 0));
+      for (uint8_t i = 0; i < 4; i++) strip.setPixelColor(rightArc[i], strip.Color(255, 60, 0));
     } else if (steering < -0.15f) {
-      for (int i = centerEnd; i < NUM_PIXELS; i++) strip.setPixelColor(i, strip.Color(255, 60, 0));
+      for (uint8_t i = 0; i < 4; i++) strip.setPixelColor(leftArc[i], strip.Color(255, 60, 0));
     }
   }
   strip.show();
@@ -323,6 +539,7 @@ void onControlRecv(const esp_now_recv_info_t *info, const uint8_t *data, int len
 #else
 void onControlRecv(const uint8_t *mac, const uint8_t *data, int len) {
 #endif
+  if (!sameMac(mac, TRANSMITTER_MAC)) return;
   if (len != sizeof(ControlPacket)) return;
 
   ControlPacket packet;
@@ -334,8 +551,6 @@ void onControlRecv(const uint8_t *mac, const uint8_t *data, int len) {
   latestPacket = packet;
   lastPacketMs = millis();
   packetValid = true;
-  memcpy(pendingControllerMac, mac, 6);
-  pendingPeer = true;
   portEXIT_CRITICAL(&packetMux);
 }
 
@@ -351,6 +566,7 @@ void setupEspNow() {
     while (true) delay(1000);
   }
 
+  esp_now_set_pmk(ESPNOW_PMK);
   esp_now_register_recv_cb(onControlRecv);
 }
 
@@ -381,20 +597,30 @@ void setup() {
   Serial.begin(115200);
   delay(400);
 
+  pinMode(BUZZER_PIN, OUTPUT);
+  buzzerWrite(false);
   setupMotors();
   strip.begin();
   strip.setBrightness(100);
   strip.show();
   setupMpu();
   setupEspNow();
+  setupControllerPeer();
+  startupPattern(mpuReady);
 
   Serial.print("Advanced receiver MAC: ");
   Serial.println(WiFi.macAddress());
+  Serial.print("Locked transmitter MAC: ");
+  printMac(TRANSMITTER_MAC);
+  Serial.println();
+  Serial.println("MPU yaw axis: +Z up, positive gyro Z = left turn.");
+  Serial.println("Board mounting now uses +Y to the front and +X sideways.");
   Serial.println("Waiting for ESP-NOW control packets...");
+  printSerialHelp();
 }
 
 void loop() {
-  rememberControllerIfNeeded();
+  handleSerialCommands();
   updateMpu();
 
   ControlPacket packet;
@@ -408,15 +634,17 @@ void loop() {
   portEXIT_CRITICAL(&packetMux);
 
   bool linkOk = hasPacket && ageMs <= FAILSAFE_MS;
-  bool kill = !linkOk || (packet.buttons & BTN_KILL);
+  bool kill = turnTestActive || !linkOk || (packet.buttons & BTN_KILL);
   bool lightsOn = packet.buttons & BTN_LIGHTS;
+  bool calibrationMode = packet.buttons & BTN_CALIBRATION;
 
   if (kill) {
     stopMotors();
   } else {
     float throttle = packet.throttle / 1000.0f;
     float steering = packet.steering / 1000.0f;
-    float limit = constrain(packet.speedLimit / 1000.0f, 0.0f, 1.0f);
+    float limit = constrain(packet.speedLimit / 255.0f, 0.0f, 1.0f);
+    if (calibrationMode) limit = min(limit, 0.5f);
 
     if (fabs(throttle) < MOTOR_DEADBAND) throttle = 0;
     if (fabs(steering) < MOTOR_DEADBAND) steering = 0;
@@ -443,13 +671,14 @@ void loop() {
     updateMotorOutputs(targetLeft, targetRight);
   }
 
-  updateLights(packet.steering / 1000.0f, linkOk, kill, lightsOn);
+  updateLights(packet.steering / 1000.0f, linkOk, kill, lightsOn, calibrationMode);
   sendTelemetry(packet, linkOk);
 
   if (millis() - lastSerialMs > 500) {
     lastSerialMs = millis();
-    Serial.printf("link=%u age=%lu kill=%u thr=%d steer=%d left=%d right=%d yaw=%.1f assist=%u\n",
-                  linkOk, ageMs, kill, packet.throttle, packet.steering,
+    Serial.printf("link=%u age=%lu kill=%u cal=%u thr=%d steer=%d spd=%u left=%d right=%d yaw=%.1f assist=%u\n",
+                  linkOk, ageMs, kill, calibrationMode ? 1 : 0,
+                  packet.throttle, packet.steering, packet.speedLimit,
                   lastLeftCommand, lastRightCommand, yawRateDps, ENABLE_YAW_ASSIST);
   }
 }
