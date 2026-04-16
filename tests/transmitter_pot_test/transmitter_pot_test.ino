@@ -17,6 +17,39 @@ int16_t minRaw[4] = {32767, 32767, 32767, 32767};
 int16_t maxRaw[4] = {-32768, -32768, -32768, -32768};
 int16_t centerRaw[4] = {0, 0, 0, 0};
 
+struct MappingStep {
+  const char *name;
+  const char *prompt;
+};
+
+struct MappingResult {
+  bool valid;
+  uint8_t channel;
+  int8_t direction;
+  int16_t average[4];
+  int32_t delta[4];
+};
+
+const MappingStep mappingSteps[] = {
+  {"left_up", "Move LEFT stick UP and hold, then press BOOT/encoder button or send n"},
+  {"left_down", "Move LEFT stick DOWN and hold, then press BOOT/encoder button or send n"},
+  {"left_left", "Move LEFT stick LEFT and hold, then press BOOT/encoder button or send n"},
+  {"left_right", "Move LEFT stick RIGHT and hold, then press BOOT/encoder button or send n"},
+  {"right_up", "Move RIGHT stick UP and hold, then press BOOT/encoder button or send n"},
+  {"right_down", "Move RIGHT stick DOWN and hold, then press BOOT/encoder button or send n"},
+  {"right_left", "Move RIGHT stick LEFT and hold, then press BOOT/encoder button or send n"},
+  {"right_right", "Move RIGHT stick RIGHT and hold, then press BOOT/encoder button or send n"},
+};
+
+const uint8_t MAPPING_STEP_COUNT = sizeof(mappingSteps) / sizeof(mappingSteps[0]);
+const uint8_t CAPTURE_SAMPLES = 120;
+const uint16_t CAPTURE_DELAY_MS = 4;
+const int32_t MOVEMENT_THRESHOLD = 900;
+
+MappingResult mappingResults[MAPPING_STEP_COUNT] = {};
+bool mappingActive = false;
+uint8_t mappingStepIndex = 0;
+
 void resetMinMax() {
   for (uint8_t i = 0; i < 4; i++) {
     minRaw[i] = 32767;
@@ -53,11 +86,182 @@ int16_t splitMapAxis(int16_t raw, int16_t minVal, int16_t centerVal, int16_t max
   return constrain(value, -1000, 1000);
 }
 
+const char *polarityText(int8_t direction) {
+  if (direction > 0) return "POS";
+  if (direction < 0) return "NEG";
+  return "CENTER";
+}
+
+bool captureTriggerPressed() {
+  static bool lastPressed = false;
+  static uint32_t lastEdgeMs = 0;
+
+  bool pressed = (digitalRead(ENCODER_SW_PIN) == LOW) || (digitalRead(BOOT_BUTTON_PIN) == LOW);
+  bool triggered = false;
+
+  if (pressed != lastPressed && millis() - lastEdgeMs > 80) {
+    lastEdgeMs = millis();
+    if (pressed) triggered = true;
+    lastPressed = pressed;
+  }
+  return triggered;
+}
+
+void printMappingPrompt() {
+  if (!mappingActive || mappingStepIndex >= MAPPING_STEP_COUNT) return;
+  Serial.println();
+  Serial.print("MAP STEP ");
+  Serial.print(mappingStepIndex + 1);
+  Serial.print("/");
+  Serial.print(MAPPING_STEP_COUNT);
+  Serial.print(": ");
+  Serial.println(mappingSteps[mappingStepIndex].name);
+  Serial.println(mappingSteps[mappingStepIndex].prompt);
+  Serial.println("Send x to cancel mapping mode.");
+}
+
+MappingResult captureMappingResult() {
+  MappingResult result = {};
+  int64_t sum[4] = {0, 0, 0, 0};
+
+  for (uint8_t sample = 0; sample < CAPTURE_SAMPLES; sample++) {
+    for (uint8_t i = 0; i < 4; i++) {
+      sum[i] += ads.readADC_SingleEnded(i);
+    }
+    delay(CAPTURE_DELAY_MS);
+  }
+
+  int32_t bestAbsDelta = 0;
+  for (uint8_t i = 0; i < 4; i++) {
+    result.average[i] = sum[i] / CAPTURE_SAMPLES;
+    result.delta[i] = result.average[i] - centerRaw[i];
+    int32_t absDelta = abs(result.delta[i]);
+    if (absDelta > bestAbsDelta) {
+      bestAbsDelta = absDelta;
+      result.channel = i;
+    }
+  }
+
+  result.valid = bestAbsDelta >= MOVEMENT_THRESHOLD;
+  if (result.valid) {
+    result.direction = result.delta[result.channel] >= 0 ? 1 : -1;
+  }
+  return result;
+}
+
+void printOneMappingResult(const char *label, const MappingResult &result) {
+  Serial.print(label);
+  Serial.print(": ");
+  if (!result.valid) {
+    Serial.println("no strong movement detected");
+    return;
+  }
+
+  Serial.print("A");
+  Serial.print(result.channel);
+  Serial.print(" ");
+  Serial.print(polarityText(result.direction));
+  Serial.print("  delta=[");
+  for (uint8_t i = 0; i < 4; i++) {
+    if (i) Serial.print(", ");
+    Serial.print(result.delta[i]);
+  }
+  Serial.println("]");
+}
+
+void printAxisPairSummary(const char *label,
+                          const MappingResult &first,
+                          const char *firstDir,
+                          const MappingResult &second,
+                          const char *secondDir) {
+  Serial.print(label);
+  Serial.print(": ");
+
+  if (!first.valid || !second.valid) {
+    Serial.println("incomplete");
+    return;
+  }
+
+  if (first.channel != second.channel) {
+    Serial.print("mismatch -> ");
+    Serial.print(firstDir);
+    Serial.print(" uses A");
+    Serial.print(first.channel);
+    Serial.print(", ");
+    Serial.print(secondDir);
+    Serial.print(" uses A");
+    Serial.println(second.channel);
+    return;
+  }
+
+  if (first.direction == second.direction) {
+    Serial.print("same polarity on both directions -> check wiring on A");
+    Serial.println(first.channel);
+    return;
+  }
+
+  Serial.print("A");
+  Serial.print(first.channel);
+  Serial.print("  ");
+  Serial.print(firstDir);
+  Serial.print("=");
+  Serial.print(polarityText(first.direction));
+  Serial.print("  ");
+  Serial.print(secondDir);
+  Serial.print("=");
+  Serial.println(polarityText(second.direction));
+}
+
+void printMappingSummary() {
+  Serial.println();
+  Serial.println("Joystick direction mapping summary:");
+  for (uint8_t i = 0; i < MAPPING_STEP_COUNT; i++) {
+    printOneMappingResult(mappingSteps[i].name, mappingResults[i]);
+  }
+
+  Serial.println();
+  Serial.println("Suggested stick axes:");
+  printAxisPairSummary("Left stick vertical", mappingResults[0], "UP", mappingResults[1], "DOWN");
+  printAxisPairSummary("Left stick horizontal", mappingResults[2], "LEFT", mappingResults[3], "RIGHT");
+  printAxisPairSummary("Right stick vertical", mappingResults[4], "UP", mappingResults[5], "DOWN");
+  printAxisPairSummary("Right stick horizontal", mappingResults[6], "LEFT", mappingResults[7], "RIGHT");
+  Serial.println();
+}
+
+void startMappingMode() {
+  memset(mappingResults, 0, sizeof(mappingResults));
+  mappingActive = true;
+  mappingStepIndex = 0;
+  captureCenter();
+  Serial.println();
+  Serial.println("Joystick mapping mode started.");
+  Serial.println("Keep sticks centered while center capture runs.");
+  printMappingPrompt();
+}
+
+void finishMappingStep() {
+  MappingResult result = captureMappingResult();
+  mappingResults[mappingStepIndex] = result;
+  printOneMappingResult(mappingSteps[mappingStepIndex].name, result);
+
+  mappingStepIndex++;
+  if (mappingStepIndex >= MAPPING_STEP_COUNT) {
+    mappingActive = false;
+    Serial.println("Mapping sequence finished.");
+    printMappingSummary();
+  } else {
+    printMappingPrompt();
+  }
+}
+
 void printHelp() {
   Serial.println();
   Serial.println("Transmitter ADS1115 / potentiometer test");
   Serial.println("  c = capture joystick centers");
+  Serial.println("  g = start guided joystick mapping");
+  Serial.println("  n = capture current guided mapping step");
   Serial.println("  r = reset min/max tracking");
+  Serial.println("  x = cancel guided mapping");
   Serial.println("Move each joystick fully, then copy min/center/max into transmitter_code axisCal[].");
   Serial.println();
 }
@@ -89,12 +293,23 @@ void loop() {
   while (Serial.available()) {
     char c = Serial.read();
     if (c == 'c') captureCenter();
+    else if (c == 'g') startMappingMode();
+    else if (c == 'n') {
+      if (mappingActive) finishMappingStep();
+    }
     else if (c == 'r') {
       resetMinMax();
       Serial.println("Min/max reset.");
+    } else if (c == 'x') {
+      mappingActive = false;
+      Serial.println("Mapping mode cancelled.");
     } else if (c == 'h' || c == '?') {
       printHelp();
     }
+  }
+
+  if (mappingActive && captureTriggerPressed()) {
+    finishMappingStep();
   }
 
   static uint32_t lastPrint = 0;
@@ -121,4 +336,8 @@ void loop() {
                 swPressed ? "PRESSED" : "RELEASED",
                 digitalRead(BOOT_BUTTON_PIN),
                 bootPressed ? "PRESSED" : "RELEASED");
+
+  if (mappingActive) {
+    Serial.printf("ACTIVE MAP STEP: %s\n", mappingSteps[mappingStepIndex].name);
+  }
 }

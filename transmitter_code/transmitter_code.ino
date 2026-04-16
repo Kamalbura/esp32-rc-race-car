@@ -12,7 +12,7 @@
 
 /* ================= RADIO CONFIG ================= */
 #define ESPNOW_CHANNEL 6
-#define SEND_INTERVAL_MS 20
+#define SEND_INTERVAL_MS 10
 
 uint8_t RECEIVER_MAC[6] = {0xB4, 0x3A, 0x45, 0x3F, 0xA4, 0xE8};
 
@@ -63,13 +63,19 @@ const uint8_t ESPNOW_LMK[16] = {
 #define BUTTON_DEBOUNCE_MS 40
 #define BUTTON_LONG_PRESS_MS 700
 #define BUTTON_MULTI_CLICK_MS 700
+#define ENCODER_STEP_DEBOUNCE_MS 3
+
+#define STEERING_AXIS_CH 0
+#define THROTTLE_AXIS_CH 1
+#define AUX1_AXIS_CH 2
+#define AUX2_AXIS_CH 3
 
 struct __attribute__((packed)) ControlPacket {
   uint8_t version;
   uint16_t sequence;
   int16_t throttle;     // -1000 reverse, 0 stop, +1000 forward
   int16_t steering;     // -1000 left, 0 center, +1000 right
-  uint16_t speedLimit;  // 0..1000
+  uint16_t speedLimit;  // 0..255
   int16_t aux1;         // raw mapped joystick axis
   int16_t aux2;         // raw mapped joystick axis
   uint8_t mode;         // 1..3
@@ -102,11 +108,14 @@ struct AxisCal {
   int16_t deadbandRaw;
 };
 
-// Provisional centers from the latest guided center capture.
-// Replace min/max with a clean full-stick capture after the next calibration pass.
+// Current bench mapping:
+// A0 = joystick horizontal (steering), A1 = joystick vertical (throttle).
+// The previous build had these swapped, which caused:
+// forward->left, right->reverse, left->forward, back->right.
+// These provisional min/max values should still be replaced by a clean full capture.
 AxisCal axisCal[4] = {
-  {4000, 18242, 32000, true,  320},  // A0 throttle
-  {4000, 17711, 32000, false, 320},  // A1 steering
+  {4000, 18242, 32000, false, 320},  // A0 steering
+  {4000, 17711, 32000, false, 320},  // A1 throttle
   {4000, 18321, 32000, false, 320},  // A2 aux / speed trim if needed
   {4000, 17750, 32000, false, 320}   // A3 mode select
 };
@@ -123,8 +132,8 @@ public:
   }
 
 private:
-  static const uint8_t FILTER_SIZE = 5;
-  int16_t samples[FILTER_SIZE] = {0, 0, 0, 0, 0};
+  static const uint8_t FILTER_SIZE = 3;
+  int16_t samples[FILTER_SIZE] = {0, 0, 0};
   int32_t total = 0;
   uint8_t index = 0;
   uint8_t count = 0;
@@ -143,7 +152,7 @@ bool killLatched = true;
 bool lightsEnabled = true;
 bool encoderSwitchDown = false;
 bool bootButtonDown = false;
-bool calibrationMode = true;
+bool calibrationMode = false;
 uint32_t encoderButtonPressCount = 0;
 bool actionButtonDown = false;
 bool longPressHandled = false;
@@ -258,36 +267,27 @@ int16_t readAxis(uint8_t channel) {
 
 void updateEncoder() {
   static bool initialized = false;
-  static uint8_t lastState = 0;
-  static int8_t quadAccum = 0;
+  static uint8_t lastClk = HIGH;
   static bool rawButtonState = HIGH;
   static bool lastStableButton = HIGH;
   static uint32_t lastBounceMs = 0;
-  static const int8_t quadTable[16] = {
-    0, -1,  1,  0,
-    1,  0,  0, -1,
-   -1,  0,  0,  1,
-    0,  1, -1,  0
-  };
+  static uint32_t lastEncoderStepMs = 0;
 
-  uint8_t a = digitalRead(ENCODER_A_PIN) ? 1 : 0;
-  uint8_t b = digitalRead(ENCODER_B_PIN) ? 1 : 0;
-  uint8_t state = (a << 1) | b;
+  uint8_t clk = digitalRead(ENCODER_A_PIN);
+  uint8_t dt = digitalRead(ENCODER_B_PIN);
 
   if (!initialized) {
-    lastState = state;
+    lastClk = clk;
     initialized = true;
-  } else if (state != lastState) {
-    quadAccum += quadTable[(lastState << 2) | state];
-    lastState = state;
-
-    if (quadAccum >= 4) {
-      speedLimit = constrain(speedLimit + 5, 0, 255);
-      quadAccum = 0;
-    } else if (quadAccum <= -4) {
-      speedLimit = constrain(speedLimit - 5, 0, 255);
-      quadAccum = 0;
+  } else if (clk != lastClk) {
+    uint32_t now = millis();
+    if (clk == LOW && now - lastEncoderStepMs >= ENCODER_STEP_DEBOUNCE_MS) {
+      int delta = (dt != clk) ? 5 : -5;
+      speedLimit = constrain(speedLimit + delta, 0, 255);
+      lastEncoderStepMs = now;
+      Serial.printf("speed_limit=%u clk=%u dt=%u\n", speedLimit, clk, dt);
     }
+    lastClk = clk;
   }
 
   bool encoderButton = digitalRead(ENCODER_SW_PIN);
@@ -356,10 +356,10 @@ ControlPacket buildPacket() {
   ControlPacket packet = {};
   packet.version = RC_PACKET_VERSION;
   packet.sequence = ++sequenceNumber;
-  packet.throttle = readAxis(0);
-  packet.steering = readAxis(1);
-  packet.aux1 = readAxis(2);
-  packet.aux2 = readAxis(3);
+  packet.throttle = readAxis(THROTTLE_AXIS_CH);
+  packet.steering = readAxis(STEERING_AXIS_CH);
+  packet.aux1 = readAxis(AUX1_AXIS_CH);
+  packet.aux2 = readAxis(AUX2_AXIS_CH);
   packet.speedLimit = speedLimit;
   packet.mode = modeFromAxis(packet.aux2);
   packet.buttons = 0;
@@ -457,7 +457,7 @@ void updateStatusLed(const ControlPacket &packet) {
 }
 
 void printStatus(const ControlPacket &packet) {
-  if (millis() - lastSerialMs < 500) return;
+  if (millis() - lastSerialMs < 1000) return;
   lastSerialMs = millis();
 
   Serial.printf("seq=%u thr=%d steer=%d limit=%u mode=%u kill=%u tx=%s",

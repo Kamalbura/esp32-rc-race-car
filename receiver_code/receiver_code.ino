@@ -37,6 +37,9 @@ struct BTS {
 BTS leftMotor  = {15, 16, 17, 18, 0, 1};
 BTS rightMotor = { 9, 10, 11, 12, 2, 3};
 
+const bool LEFT_MOTOR_INVERT = true;
+const bool RIGHT_MOTOR_INVERT = false;
+
 #define MOTOR_PWM_FREQ 20000
 #define MOTOR_PWM_BITS 8
 #define MOTOR_DEADBAND 0.03f
@@ -202,8 +205,9 @@ void pwmWrite(uint8_t pin, uint8_t channel, uint8_t duty) {
 #endif
 }
 
-void drive(BTS &motor, int speed) {
+void drive(BTS &motor, int speed, bool invert) {
   speed = constrain(speed, -255, 255);
+  if (invert) speed = -speed;
 
   if (speed == 0) {
     pwmWrite(motor.lpwm, motor.chL, 0);
@@ -218,8 +222,8 @@ void drive(BTS &motor, int speed) {
 }
 
 void stopMotors() {
-  drive(leftMotor, 0);
-  drive(rightMotor, 0);
+  drive(leftMotor, 0, LEFT_MOTOR_INVERT);
+  drive(rightMotor, 0, RIGHT_MOTOR_INVERT);
   currentLeftPwm = 0;
   currentRightPwm = 0;
   lastLeftCommand = 0;
@@ -253,8 +257,8 @@ void updateMotorOutputs(int targetLeft, int targetRight) {
 
   lastLeftCommand = (int16_t)lroundf(currentLeftPwm);
   lastRightCommand = (int16_t)lroundf(currentRightPwm);
-  drive(leftMotor, lastLeftCommand);
-  drive(rightMotor, lastRightCommand);
+  drive(leftMotor, lastLeftCommand, LEFT_MOTOR_INVERT);
+  drive(rightMotor, lastRightCommand, RIGHT_MOTOR_INVERT);
 }
 
 void updateLights(float steering, bool linkOk, bool kill, bool lightsOn, bool calibrationMode) {
@@ -417,6 +421,8 @@ void loop() {
   bool kill = !linkOk || (packet.buttons & BTN_KILL);
   bool lightsOn = packet.buttons & BTN_LIGHTS;
   bool calibrationMode = packet.buttons & BTN_CALIBRATION;
+  uint16_t requestedSpeedLimit = packet.speedLimit;
+  uint16_t effectiveSpeedLimit = requestedSpeedLimit;
 
   if (kill) {
     stopMotors();
@@ -425,6 +431,7 @@ void loop() {
     float steering = packet.steering / 1000.0f;
     float limit = constrain(packet.speedLimit / 255.0f, 0.0f, 1.0f);
     if (calibrationMode) limit = min(limit, 0.5f);
+    effectiveSpeedLimit = (uint16_t)lroundf(limit * 255.0f);
 
     if (fabs(throttle) < MOTOR_DEADBAND) throttle = 0;
     if (fabs(steering) < MOTOR_DEADBAND) steering = 0;
@@ -447,8 +454,8 @@ void loop() {
 
   if (millis() - lastSerialMs > 500) {
     lastSerialMs = millis();
-    Serial.printf("link=%u age=%lu kill=%u cal=%u thr=%d steer=%d left=%d right=%d spd=%u mode=%u\n",
+    Serial.printf("link=%u age=%lu kill=%u cal=%u thr=%d steer=%d left=%d right=%d spdReq=%u spdEff=%u mode=%u\n",
                   linkOk, ageMs, kill, calibrationMode ? 1 : 0, packet.throttle, packet.steering,
-                  lastLeftCommand, lastRightCommand, packet.speedLimit, packet.mode);
+                  lastLeftCommand, lastRightCommand, requestedSpeedLimit, effectiveSpeedLimit, packet.mode);
   }
 }

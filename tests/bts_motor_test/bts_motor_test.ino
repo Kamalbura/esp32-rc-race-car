@@ -13,11 +13,22 @@ struct BTS {
 BTS leftMotor  = {15, 16, 17, 18, 0, 1};
 BTS rightMotor = { 9, 10, 11, 12, 2, 3};
 
+const bool LEFT_MOTOR_INVERT = true;
+const bool RIGHT_MOTOR_INVERT = false;
+
 #define MOTOR_PWM_FREQ 20000
 #define MOTOR_PWM_BITS 8
 
 int testSpeed = 80;
 bool autoRamp = false;
+
+void printPinout() {
+  Serial.println("Receiver BTS pinout:");
+  Serial.printf("  Left  LPWM=%u RPWM=%u L_EN=%u R_EN=%u\n",
+                leftMotor.lpwm, leftMotor.rpwm, leftMotor.len, leftMotor.ren);
+  Serial.printf("  Right LPWM=%u RPWM=%u L_EN=%u R_EN=%u\n",
+                rightMotor.lpwm, rightMotor.rpwm, rightMotor.len, rightMotor.ren);
+}
 
 void pwmAttach(uint8_t pin, uint8_t channel) {
 #if ESP_ARDUINO_VERSION_MAJOR >= 3
@@ -37,8 +48,9 @@ void pwmWrite(uint8_t pin, uint8_t channel, uint8_t duty) {
 #endif
 }
 
-void drive(BTS &motor, int speed) {
+void drive(BTS &motor, int speed, bool invert) {
   speed = constrain(speed, -255, 255);
+  if (invert) speed = -speed;
   if (speed == 0) {
     pwmWrite(motor.lpwm, motor.chL, 0);
     pwmWrite(motor.rpwm, motor.chR, 0);
@@ -52,8 +64,8 @@ void drive(BTS &motor, int speed) {
 }
 
 void driveBoth(int left, int right) {
-  drive(leftMotor, left);
-  drive(rightMotor, right);
+  drive(leftMotor, left, LEFT_MOTOR_INVERT);
+  drive(rightMotor, right, RIGHT_MOTOR_INVERT);
   Serial.printf("left=%d right=%d\n", left, right);
 }
 
@@ -90,10 +102,15 @@ void printHelp() {
   Serial.println("  s reverse");
   Serial.println("  a spin left");
   Serial.println("  d spin right");
+  Serial.println("  i left motor forward");
+  Serial.println("  k left motor reverse");
+  Serial.println("  o right motor forward");
+  Serial.println("  l right motor reverse");
   Serial.println("  0 stop");
   Serial.println("  + speed up");
   Serial.println("  - speed down");
   Serial.println("  r toggle slow auto ramp");
+  Serial.println("  p print pinout");
   Serial.println("Keep wheels off the ground.");
   Serial.println();
 }
@@ -103,8 +120,12 @@ void handleSerial() {
     char c = Serial.read();
     if (c == 'w') driveBoth(testSpeed, testSpeed);
     else if (c == 's') driveBoth(-testSpeed, -testSpeed);
-    else if (c == 'a') driveBoth(-testSpeed, testSpeed);
-    else if (c == 'd') driveBoth(testSpeed, -testSpeed);
+    else if (c == 'a') driveBoth(testSpeed, -testSpeed);
+    else if (c == 'd') driveBoth(-testSpeed, testSpeed);
+    else if (c == 'i') driveBoth(testSpeed, 0);
+    else if (c == 'k') driveBoth(-testSpeed, 0);
+    else if (c == 'o') driveBoth(0, testSpeed);
+    else if (c == 'l') driveBoth(0, -testSpeed);
     else if (c == '0') {
       autoRamp = false;
       stopMotors();
@@ -118,6 +139,8 @@ void handleSerial() {
       autoRamp = !autoRamp;
       Serial.println(autoRamp ? "auto ramp on" : "auto ramp off");
       if (!autoRamp) stopMotors();
+    } else if (c == 'p') {
+      printPinout();
     } else if (c == 'h' || c == '?') {
       printHelp();
     }
@@ -143,6 +166,7 @@ void setup() {
   Serial.begin(115200);
   delay(400);
   setupMotorPins();
+  printPinout();
   printHelp();
 }
 
