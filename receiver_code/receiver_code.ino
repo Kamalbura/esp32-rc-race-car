@@ -46,6 +46,7 @@ const bool RIGHT_MOTOR_INVERT = false;
 #define MOTOR_ACCEL_PWM_PER_SEC 650.0f
 #define MOTOR_DECEL_PWM_PER_SEC 1000.0f
 #define MOTOR_REVERSE_BRAKE_PWM_PER_SEC 1500.0f
+#define CALIBRATION_SPEED_SCALE 0.5f
 
 /* ================= LIGHTS ================= */
 #define PIXEL_PIN 8
@@ -442,7 +443,9 @@ void loop() {
     float throttle = packet.throttle / 1000.0f;
     float steering = packet.steering / 1000.0f;
     float limit = constrain(packet.speedLimit / 255.0f, 0.0f, 1.0f);
-    if (calibrationMode) limit = min(limit, 0.5f);
+    // In calibration mode, scale the full knob range into a safe half range.
+    // This avoids the old behavior where speed saturated above mid-knob.
+    if (calibrationMode) limit *= CALIBRATION_SPEED_SCALE;
     effectiveSpeedLimit = (uint16_t)lroundf(limit * 255.0f);
 
     if (fabs(throttle) < MOTOR_DEADBAND) throttle = 0;

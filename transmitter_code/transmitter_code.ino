@@ -9,6 +9,7 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_ST7735.h>
 #include <Adafruit_NeoPixel.h>
+#include <Preferences.h>
 
 /* ================= RADIO CONFIG ================= */
 #define ESPNOW_CHANNEL 6
@@ -64,12 +65,20 @@ const uint8_t ESPNOW_LMK[16] = {
 #define BUTTON_DEBOUNCE_MS 40
 #define BUTTON_LONG_PRESS_MS 700
 #define BUTTON_MULTI_CLICK_MS 700
-#define ENCODER_STEP_DEBOUNCE_MS 3
+#define CALIBRATION_ENTRY_CLICKS 4
+#define FULL_SPEED_LIMIT 255
+#define CAL_CAPTURE_SAMPLES 80
+#define CAL_CAPTURE_DELAY_MS 2
+#define CAL_STORE_NS "txcal"
+#define CAL_STORE_KEY "axis_v1"
+#define CAL_STORE_MAGIC 0x54584341UL  // "TXCA"
+#define CAL_STORE_VERSION 1
 
 #define STEERING_AXIS_CH 0
 #define THROTTLE_AXIS_CH 1
 #define AUX1_AXIS_CH 2
 #define AUX2_AXIS_CH 3
+#define SWAP_STEERING_LEFT_RIGHT 0
 
 struct __attribute__((packed)) ControlPacket {
   uint8_t version;
@@ -97,6 +106,31 @@ struct __attribute__((packed)) TelemetryPacket {
 
 static_assert(sizeof(ControlPacket) <= 250, "ESP-NOW v1 packet must stay <= 250 bytes");
 
+enum CalStep : uint8_t {
+  CAL_CENTER = 0,
+  CAL_BOTH_UP = 1,
+  CAL_BOTH_DOWN = 2,
+  CAL_BOTH_LEFT = 3,
+  CAL_BOTH_RIGHT = 4,
+  CAL_DONE = 5
+};
+
+struct StoredAxisCal {
+  int16_t minRaw;
+  int16_t centerRaw;
+  int16_t maxRaw;
+  int16_t deadbandRaw;
+  uint8_t invert;
+  uint8_t reserved[3];
+};
+
+struct StoredCalibration {
+  uint32_t magic;
+  uint16_t version;
+  uint16_t crc;
+  StoredAxisCal axis[4];
+};
+
 Adafruit_ADS1115 ads;
 Adafruit_ST7735 tft(DISPLAY_CS_PIN, DISPLAY_DC_PIN, DISPLAY_RST_PIN);
 Adafruit_NeoPixel statusPixel(BUILTIN_RGB_COUNT, BUILTIN_RGB_PIN, NEO_GRB + NEO_KHZ800);
@@ -118,7 +152,7 @@ struct AxisCal {
 // Center values measured at rest:  A0≈21220  A1≈20560  A2≈21090  A3≈20440.
 // Deadband raised to 500 (~3.6%) to eliminate center creep from ADC noise.
 AxisCal axisCal[4] = {
-  {4000, 21220, 32000, true,  500},  // A0 steering  (inverted to match physical direction)
+  {4000, 21220, 32000, false, 500},  // A0 steering
   {4000, 20560, 32000, true,  500},  // A1 throttle  (inverted to match physical direction)
   {4000, 21090, 32000, false, 500},  // A2 aux / speed trim if needed
   {4000, 20440, 32000, false, 500}   // A3 mode select
@@ -154,12 +188,10 @@ bool telemetryReady = false;
 uint32_t lastTelemetryRxMs = 0;
 
 uint16_t sequenceNumber = 0;
-uint16_t speedLimit = 128;
 bool killLatched = true;
 bool lightsEnabled = true;
 bool encoderSwitchDown = false;
 bool bootButtonDown = false;
-bool calibrationMode = false;
 uint32_t encoderButtonPressCount = 0;
 bool actionButtonDown = false;
 bool longPressHandled = false;
@@ -169,6 +201,10 @@ uint32_t shortPressDeadlineMs = 0;
 uint32_t lastSendMs = 0;
 uint32_t lastScreenMs = 0;
 uint32_t lastSerialMs = 0;
+
+bool runtimeCalActive = false;
+uint8_t runtimeCalStep = CAL_CENTER;
+int16_t calSamples[CAL_DONE][4] = {};
 
 /* ================= DUAL-CORE DISPLAY OFFLOAD ================= */
 // Display + serial print run on Core 0 so the control loop on Core 1
@@ -192,6 +228,79 @@ uint16_t crc16Ccitt(const uint8_t *data, size_t len) {
     }
   }
   return crc;
+}
+
+uint16_t calibrationStorageCrc(const StoredCalibration &stored) {
+  StoredCalibration copy = stored;
+  copy.crc = 0;
+  return crc16Ccitt((const uint8_t *)&copy, sizeof(copy));
+}
+
+StoredCalibration buildStoredCalibration() {
+  StoredCalibration stored = {};
+  stored.magic = CAL_STORE_MAGIC;
+  stored.version = CAL_STORE_VERSION;
+  for (uint8_t i = 0; i < 4; i++) {
+    stored.axis[i].minRaw = axisCal[i].minRaw;
+    stored.axis[i].centerRaw = axisCal[i].centerRaw;
+    stored.axis[i].maxRaw = axisCal[i].maxRaw;
+    stored.axis[i].deadbandRaw = axisCal[i].deadbandRaw;
+    stored.axis[i].invert = axisCal[i].invert ? 1 : 0;
+  }
+  stored.crc = calibrationStorageCrc(stored);
+  return stored;
+}
+
+void applyStoredCalibration(const StoredCalibration &stored) {
+  for (uint8_t i = 0; i < 4; i++) {
+    axisCal[i].minRaw = stored.axis[i].minRaw;
+    axisCal[i].centerRaw = stored.axis[i].centerRaw;
+    axisCal[i].maxRaw = stored.axis[i].maxRaw;
+    axisCal[i].deadbandRaw = stored.axis[i].deadbandRaw;
+    axisCal[i].invert = stored.axis[i].invert != 0;
+  }
+}
+
+bool saveCalibrationToNvs() {
+  StoredCalibration stored = buildStoredCalibration();
+  Preferences prefs;
+  if (!prefs.begin(CAL_STORE_NS, false)) {
+    Serial.println("cal save failed: nvs open");
+    return false;
+  }
+  size_t written = prefs.putBytes(CAL_STORE_KEY, &stored, sizeof(stored));
+  prefs.end();
+  bool ok = written == sizeof(stored);
+  Serial.println(ok ? "cal saved to nvs" : "cal save failed: short write");
+  return ok;
+}
+
+bool loadCalibrationFromNvs() {
+  Preferences prefs;
+  if (!prefs.begin(CAL_STORE_NS, true)) {
+    Serial.println("cal load skipped: nvs open");
+    return false;
+  }
+
+  StoredCalibration stored = {};
+  size_t read = prefs.getBytes(CAL_STORE_KEY, &stored, sizeof(stored));
+  prefs.end();
+  if (read != sizeof(stored)) {
+    Serial.println("cal load: no stored calibration");
+    return false;
+  }
+  if (stored.magic != CAL_STORE_MAGIC || stored.version != CAL_STORE_VERSION) {
+    Serial.println("cal load: header mismatch");
+    return false;
+  }
+  if (calibrationStorageCrc(stored) != stored.crc) {
+    Serial.println("cal load: crc mismatch");
+    return false;
+  }
+
+  applyStoredCalibration(stored);
+  Serial.println("cal loaded from nvs");
+  return true;
 }
 
 uint16_t controlCrc(const ControlPacket &packet) {
@@ -288,30 +397,108 @@ int16_t readAxis(uint8_t channel) {
   return splitMapAxis(filtered, axisCal[channel]);
 }
 
+const char *calStepText(uint8_t step) {
+  switch (step) {
+    case CAL_CENTER: return "Center all sticks";
+    case CAL_BOTH_UP: return "Both sticks UP";
+    case CAL_BOTH_DOWN: return "Both sticks DOWN";
+    case CAL_BOTH_LEFT: return "Both sticks LEFT";
+    case CAL_BOTH_RIGHT: return "Both sticks RIGHT";
+    default: return "Done";
+  }
+}
+
+void captureCalibrationStep(uint8_t step) {
+  int32_t sum[4] = {0, 0, 0, 0};
+  for (uint8_t n = 0; n < CAL_CAPTURE_SAMPLES; n++) {
+    for (uint8_t ch = 0; ch < 4; ch++) {
+      sum[ch] += ads.readADC_SingleEnded(ch);
+    }
+    delay(CAL_CAPTURE_DELAY_MS);
+  }
+  for (uint8_t ch = 0; ch < 4; ch++) {
+    calSamples[step][ch] = (int16_t)(sum[ch] / CAL_CAPTURE_SAMPLES);
+  }
+}
+
+void normalizeAxisBounds(AxisCal &cal) {
+  if (cal.minRaw > cal.centerRaw - 200) cal.minRaw = cal.centerRaw - 200;
+  if (cal.maxRaw < cal.centerRaw + 200) cal.maxRaw = cal.centerRaw + 200;
+}
+
+void applyRuntimeCalibration() {
+  axisCal[STEERING_AXIS_CH].centerRaw = calSamples[CAL_CENTER][STEERING_AXIS_CH];
+  axisCal[THROTTLE_AXIS_CH].centerRaw = calSamples[CAL_CENTER][THROTTLE_AXIS_CH];
+  axisCal[AUX1_AXIS_CH].centerRaw = calSamples[CAL_CENTER][AUX1_AXIS_CH];
+  axisCal[AUX2_AXIS_CH].centerRaw = calSamples[CAL_CENTER][AUX2_AXIS_CH];
+
+  int16_t steerLeft = calSamples[CAL_BOTH_LEFT][STEERING_AXIS_CH];
+  int16_t steerRight = calSamples[CAL_BOTH_RIGHT][STEERING_AXIS_CH];
+  axisCal[STEERING_AXIS_CH].minRaw = min(steerLeft, steerRight);
+  axisCal[STEERING_AXIS_CH].maxRaw = max(steerLeft, steerRight);
+  axisCal[STEERING_AXIS_CH].invert = (steerRight < axisCal[STEERING_AXIS_CH].centerRaw);
+
+  int16_t thrUp = calSamples[CAL_BOTH_UP][THROTTLE_AXIS_CH];
+  int16_t thrDown = calSamples[CAL_BOTH_DOWN][THROTTLE_AXIS_CH];
+  axisCal[THROTTLE_AXIS_CH].minRaw = min(thrUp, thrDown);
+  axisCal[THROTTLE_AXIS_CH].maxRaw = max(thrUp, thrDown);
+  axisCal[THROTTLE_AXIS_CH].invert = (thrUp < axisCal[THROTTLE_AXIS_CH].centerRaw);
+
+  axisCal[AUX1_AXIS_CH].minRaw = min(calSamples[CAL_BOTH_LEFT][AUX1_AXIS_CH], calSamples[CAL_BOTH_RIGHT][AUX1_AXIS_CH]);
+  axisCal[AUX1_AXIS_CH].maxRaw = max(calSamples[CAL_BOTH_LEFT][AUX1_AXIS_CH], calSamples[CAL_BOTH_RIGHT][AUX1_AXIS_CH]);
+  axisCal[AUX2_AXIS_CH].minRaw = min(calSamples[CAL_BOTH_UP][AUX2_AXIS_CH], calSamples[CAL_BOTH_DOWN][AUX2_AXIS_CH]);
+  axisCal[AUX2_AXIS_CH].maxRaw = max(calSamples[CAL_BOTH_UP][AUX2_AXIS_CH], calSamples[CAL_BOTH_DOWN][AUX2_AXIS_CH]);
+
+  normalizeAxisBounds(axisCal[STEERING_AXIS_CH]);
+  normalizeAxisBounds(axisCal[THROTTLE_AXIS_CH]);
+  normalizeAxisBounds(axisCal[AUX1_AXIS_CH]);
+  normalizeAxisBounds(axisCal[AUX2_AXIS_CH]);
+
+  for (uint8_t i = 0; i < 4; i++) {
+    filters[i] = AxisFilter();
+  }
+
+  saveCalibrationToNvs();
+
+  Serial.printf("cal applied: steer ctr=%d min=%d max=%d inv=%u, thr ctr=%d min=%d max=%d inv=%u\n",
+                axisCal[STEERING_AXIS_CH].centerRaw,
+                axisCal[STEERING_AXIS_CH].minRaw,
+                axisCal[STEERING_AXIS_CH].maxRaw,
+                axisCal[STEERING_AXIS_CH].invert ? 1 : 0,
+                axisCal[THROTTLE_AXIS_CH].centerRaw,
+                axisCal[THROTTLE_AXIS_CH].minRaw,
+                axisCal[THROTTLE_AXIS_CH].maxRaw,
+                axisCal[THROTTLE_AXIS_CH].invert ? 1 : 0);
+}
+
+void startRuntimeCalibration() {
+  runtimeCalActive = true;
+  runtimeCalStep = CAL_CENTER;
+  killLatched = true;
+  shortPressCount = 0;
+  shortPressDeadlineMs = 0;
+  Serial.println("calibration start: press BOOT/encoder to capture each step");
+}
+
+void captureNextCalibrationStep() {
+  if (!runtimeCalActive) return;
+  if (runtimeCalStep >= CAL_DONE) return;
+
+  captureCalibrationStep(runtimeCalStep);
+  Serial.printf("cal step %u captured: %s\n", runtimeCalStep + 1, calStepText(runtimeCalStep));
+  runtimeCalStep++;
+
+  if (runtimeCalStep >= CAL_DONE) {
+    applyRuntimeCalibration();
+    runtimeCalActive = false;
+    Serial.println("calibration complete");
+  }
+}
+
 void updateEncoder() {
-  static bool initialized = false;
-  static uint8_t lastClk = HIGH;
   static bool rawButtonState = false;
   static bool lastStableButton = false;
   static uint32_t lastBounceMs = 0;
-  static uint32_t lastEncoderStepMs = 0;
-
-  uint8_t clk = digitalRead(ENCODER_A_PIN);
-  uint8_t dt = digitalRead(ENCODER_B_PIN);
-
-  if (!initialized) {
-    lastClk = clk;
-    initialized = true;
-  } else if (clk != lastClk) {
-    uint32_t now = millis();
-    if (clk == LOW && now - lastEncoderStepMs >= ENCODER_STEP_DEBOUNCE_MS) {
-      int delta = (dt != clk) ? 5 : -5;
-      speedLimit = constrain(speedLimit + delta, 0, 255);
-      lastEncoderStepMs = now;
-      Serial.printf("speed_limit=%u clk=%u dt=%u\n", speedLimit, clk, dt);
-    }
-    lastClk = clk;
-  }
 
   bool encoderButton = digitalRead(ENCODER_SW_PIN);
   bool bootButton = digitalRead(BOOT_BUTTON_PIN);
@@ -335,13 +522,17 @@ void updateEncoder() {
       actionButtonDown = false;
       if (!longPressHandled) {
         encoderButtonPressCount++;
-        shortPressCount++;
-        shortPressDeadlineMs = millis() + BUTTON_MULTI_CLICK_MS;
-        Serial.printf("short press count=%lu shortGroup=%u encSw=%u boot=%u\n",
-                      encoderButtonPressCount,
-                      shortPressCount,
-                      encoderSwitchDown ? 1 : 0,
-                      bootButtonDown ? 1 : 0);
+        if (runtimeCalActive) {
+          captureNextCalibrationStep();
+        } else {
+          shortPressCount++;
+          shortPressDeadlineMs = millis() + BUTTON_MULTI_CLICK_MS;
+          Serial.printf("short press count=%lu shortGroup=%u encSw=%u boot=%u\n",
+                        encoderButtonPressCount,
+                        shortPressCount,
+                        encoderSwitchDown ? 1 : 0,
+                        bootButtonDown ? 1 : 0);
+        }
       }
     }
   }
@@ -361,11 +552,8 @@ void updateEncoder() {
     if (shortPressCount == 1) {
       lightsEnabled = !lightsEnabled;
       Serial.printf("lights=%u via single press\n", lightsEnabled ? 1 : 0);
-    } else if (shortPressCount >= 3) {
-      calibrationMode = !calibrationMode;
-      Serial.printf("calibration_mode=%u via %u short presses\n",
-                    calibrationMode ? 1 : 0,
-                    shortPressCount);
+    } else if (shortPressCount >= CALIBRATION_ENTRY_CLICKS) {
+      startRuntimeCalibration();
     }
     shortPressCount = 0;
     shortPressDeadlineMs = 0;
@@ -385,7 +573,11 @@ ControlPacket buildPacket() {
 
   // Always read throttle + steering at full rate (2 ADC reads ~2.3ms).
   packet.throttle = readAxis(THROTTLE_AXIS_CH);
-  packet.steering = readAxis(STEERING_AXIS_CH);
+  int16_t steering = readAxis(STEERING_AXIS_CH);
+#if SWAP_STEERING_LEFT_RIGHT
+  steering = -steering;
+#endif
+  packet.steering = steering;
 
   // Read aux channels at 1/5 rate (~20 Hz still, saves ~2.3ms on 80% of loops).
   if (++auxReadCounter >= 5) {
@@ -396,12 +588,11 @@ ControlPacket buildPacket() {
   packet.aux1 = cachedAux1;
   packet.aux2 = cachedAux2;
 
-  packet.speedLimit = speedLimit;
+  packet.speedLimit = FULL_SPEED_LIMIT;
   packet.mode = modeFromAxis(packet.aux2);
   packet.buttons = 0;
   if (killLatched) packet.buttons |= BTN_KILL;
   if (lightsEnabled) packet.buttons |= BTN_LIGHTS;
-  if (calibrationMode) packet.buttons |= BTN_CALIBRATION;
   packet.crc = controlCrc(packet);
   return packet;
 }
@@ -417,6 +608,42 @@ void drawScreen(const ControlPacket &packet) {
   telCopy = latestTelemetry;
   telFresh = telemetryReady && (millis() - lastTelemetryRxMs < TELEMETRY_STALE_MS);
   portEXIT_CRITICAL(&telemetryMux);
+
+  if (runtimeCalActive) {
+    tft.fillScreen(ST77XX_BLACK);
+    tft.setTextSize(1);
+    tft.setTextColor(ST77XX_CYAN);
+    tft.setCursor(0, 0);
+    tft.print("CALIBRATION");
+    tft.setTextColor(ST77XX_WHITE);
+    tft.setCursor(0, 16);
+    tft.print("Step ");
+    tft.print(runtimeCalStep + 1);
+    tft.print("/");
+    tft.print((uint8_t)CAL_DONE);
+    tft.setCursor(0, 30);
+    tft.print(calStepText(runtimeCalStep));
+    tft.setCursor(0, 48);
+    tft.print("Press BOOT/SW");
+    tft.setCursor(0, 60);
+    tft.print("to capture");
+    tft.setCursor(0, 84);
+    tft.print("THR ");
+    tft.print(packet.throttle);
+    tft.setCursor(64, 84);
+    tft.print("STR ");
+    tft.print(packet.steering);
+    tft.setCursor(0, 96);
+    tft.print("AUX1 ");
+    tft.print(packet.aux1);
+    tft.setCursor(64, 96);
+    tft.print("AUX2 ");
+    tft.print(packet.aux2);
+    tft.setCursor(0, 114);
+    tft.setTextColor(ST77XX_YELLOW);
+    tft.print("Hold position steady");
+    return;
+  }
 
   // Clear only the value regions instead of full screen to eliminate flicker.
   // Row layout: 0, 18, 32, 46, 66, 80, 94, 108 — each row is ~12px tall.
@@ -446,16 +673,14 @@ void drawScreen(const ControlPacket &packet) {
   tft.print("STR ");
   tft.print(packet.steering);
   tft.setCursor(0, 46);
-  tft.print("SPD ");
-  tft.print(packet.speedLimit);
-  tft.print("/255");
+  tft.print("SPD FULL");
   tft.setCursor(92, 46);
   tft.print("M");
   tft.print(packet.mode);
 
   tft.setCursor(0, 66);
-  tft.setTextColor(calibrationMode ? ST77XX_CYAN : ST77XX_WHITE);
-  tft.print(calibrationMode ? "CAL SAFE" : "DRIVE");
+  tft.setTextColor(ST77XX_WHITE);
+  tft.print("RACE");
 
   tft.setCursor(72, 66);
   tft.setTextColor(lastSendOk ? ST77XX_GREEN : ST77XX_YELLOW);
@@ -535,8 +760,9 @@ void printStatus(const ControlPacket &packet) {
                 packet.sequence, packet.throttle, packet.steering,
                 packet.speedLimit, packet.mode, killLatched, lightsEnabled,
                 lastSendOk ? "ok" : "pending/fail");
-  Serial.printf(" cal=%u encSw=%u boot=%u swCount=%lu",
-                calibrationMode ? 1 : 0,
+  Serial.printf(" calRun=%u step=%u encSw=%u boot=%u swCount=%lu",
+                runtimeCalActive ? 1 : 0,
+                runtimeCalActive ? runtimeCalStep + 1 : 0,
                 encoderSwitchDown ? 1 : 0,
                 bootButtonDown ? 1 : 0,
                 encoderButtonPressCount);
@@ -595,6 +821,7 @@ void setup() {
   }
   ads.setGain(GAIN_ONE);
   ads.setDataRate(RATE_ADS1115_860SPS);
+  loadCalibrationFromNvs();
 
   SPI.begin(SPI_SCK_PIN, SPI_MISO_PIN, SPI_MOSI_PIN);
   tft.initR(INITR_144GREENTAB);
@@ -609,7 +836,8 @@ void setup() {
   printMac(RECEIVER_MAC);
   Serial.println(" (secure direct)");
   Serial.println("Long press encoder/BOOT toggles kill. Single press toggles lights.");
-  Serial.println("Triple short press toggles calibration mode.");
+  Serial.println("Four short presses starts calibration wizard (center/up/down/left/right).");
+  Serial.println("Race mode sends full speed limit; joystick tilt controls speed.");
 
   // Launch display task on Core 0 so SPI writes never block the control loop.
   xTaskCreatePinnedToCore(displayTask, "disp", 4096, NULL, 1, NULL, 0);

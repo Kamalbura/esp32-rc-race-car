@@ -33,7 +33,7 @@ the same name as the `.ino` file inside it.
 - Speed limit is `0..255` end-to-end
 - Receiver logs show both requested and effective speed:
   - `spdReq`
-  - `spdEff` (after calibration clamp)
+  - `spdEff` (after calibration scaling)
 
 ## Current Pairing
 
@@ -62,6 +62,7 @@ Both sides use encrypted ESP-NOW with shared PMK and LMK in code.
 Notes:
 - BOOT (`GPIO0`) is used as a runtime fallback button.
 - Do not hold BOOT during reset or power-up.
+- In calibration mode, full speed knob range is scaled into safe half output range.
 
 ## Transmitter Axis Mapping (Current V6)
 
