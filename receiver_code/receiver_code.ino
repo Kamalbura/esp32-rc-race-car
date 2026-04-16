@@ -104,6 +104,7 @@ float currentRightPwm = 0.0f;
 uint32_t lastMotorRampMs = 0;
 uint32_t lastTelemetryMs = 0;
 uint32_t lastSerialMs = 0;
+volatile uint32_t telemetrySendErrors = 0;
 
 uint16_t crc16Ccitt(const uint8_t *data, size_t len) {
   uint16_t crc = 0xFFFF;
@@ -345,6 +346,16 @@ void onControlRecv(const uint8_t *mac, const uint8_t *data, int len) {
   portEXIT_CRITICAL(&packetMux);
 }
 
+#if ESP_IDF_VERSION_MAJOR > 5 || (ESP_IDF_VERSION_MAJOR == 5 && ESP_IDF_VERSION_MINOR >= 5)
+void onTelemetrySent(const esp_now_send_info_t *txInfo, esp_now_send_status_t status) {
+  (void)txInfo;
+#else
+void onTelemetrySent(const uint8_t *mac, esp_now_send_status_t status) {
+  (void)mac;
+#endif
+  if (status != ESP_NOW_SEND_SUCCESS) telemetrySendErrors++;
+}
+
 void setupEspNow() {
   WiFi.mode(WIFI_STA);
   WiFi.disconnect();
@@ -359,6 +370,7 @@ void setupEspNow() {
 
   esp_now_set_pmk(ESPNOW_PMK);
   esp_now_register_recv_cb(onControlRecv);
+  esp_now_register_send_cb(onTelemetrySent);
 }
 
 void setupMotors() {
@@ -454,8 +466,9 @@ void loop() {
 
   if (millis() - lastSerialMs > 500) {
     lastSerialMs = millis();
-    Serial.printf("link=%u age=%lu kill=%u cal=%u thr=%d steer=%d left=%d right=%d spdReq=%u spdEff=%u mode=%u\n",
+    Serial.printf("link=%u age=%lu kill=%u cal=%u thr=%d steer=%d left=%d right=%d spdReq=%u spdEff=%u mode=%u telErr=%lu\n",
                   linkOk, ageMs, kill, calibrationMode ? 1 : 0, packet.throttle, packet.steering,
-                  lastLeftCommand, lastRightCommand, requestedSpeedLimit, effectiveSpeedLimit, packet.mode);
+                  lastLeftCommand, lastRightCommand, requestedSpeedLimit, effectiveSpeedLimit, packet.mode,
+                  telemetrySendErrors);
   }
 }

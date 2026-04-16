@@ -12,7 +12,8 @@
 
 /* ================= RADIO CONFIG ================= */
 #define ESPNOW_CHANNEL 6
-#define SEND_INTERVAL_MS 10
+#define SEND_INTERVAL_MS 20
+#define TELEMETRY_STALE_MS 500
 
 uint8_t RECEIVER_MAC[6] = {0xB4, 0x3A, 0x45, 0x3F, 0xA4, 0xE8};
 
@@ -143,8 +144,11 @@ AxisFilter filters[4];
 
 volatile bool sendReady = true;
 volatile bool lastSendOk = false;
-volatile bool telemetryReady = false;
+
+portMUX_TYPE telemetryMux = portMUX_INITIALIZER_UNLOCKED;
 TelemetryPacket latestTelemetry = {};
+bool telemetryReady = false;
+uint32_t lastTelemetryRxMs = 0;
 
 uint16_t sequenceNumber = 0;
 uint16_t speedLimit = 128;
@@ -237,8 +241,11 @@ void onTelemetryRecv(const uint8_t *mac, const uint8_t *data, int len) {
   if (packet.version != RC_PACKET_VERSION) return;
   if (telemetryCrc(packet) != packet.crc) return;
 
+  portENTER_CRITICAL(&telemetryMux);
   latestTelemetry = packet;
   telemetryReady = true;
+  lastTelemetryRxMs = millis();
+  portEXIT_CRITICAL(&telemetryMux);
 }
 
 int16_t splitMapAxis(int16_t raw, const AxisCal &cal) {
@@ -268,8 +275,8 @@ int16_t readAxis(uint8_t channel) {
 void updateEncoder() {
   static bool initialized = false;
   static uint8_t lastClk = HIGH;
-  static bool rawButtonState = HIGH;
-  static bool lastStableButton = HIGH;
+  static bool rawButtonState = false;
+  static bool lastStableButton = false;
   static uint32_t lastBounceMs = 0;
   static uint32_t lastEncoderStepMs = 0;
 
@@ -304,7 +311,7 @@ void updateEncoder() {
   if (millis() - lastBounceMs >= BUTTON_DEBOUNCE_MS && button != lastStableButton) {
     lastStableButton = button;
 
-    if (button == LOW) {
+    if (button) {
       actionButtonDown = true;
       longPressHandled = false;
       buttonPressStartMs = millis();
@@ -335,7 +342,10 @@ void updateEncoder() {
   }
 
   if (!actionButtonDown && shortPressCount > 0 && millis() >= shortPressDeadlineMs) {
-    if (shortPressCount >= 3) {
+    if (shortPressCount == 1) {
+      lightsEnabled = !lightsEnabled;
+      Serial.printf("lights=%u via single press\n", lightsEnabled ? 1 : 0);
+    } else if (shortPressCount >= 3) {
       calibrationMode = !calibrationMode;
       Serial.printf("calibration_mode=%u via %u short presses\n",
                     calibrationMode ? 1 : 0,
@@ -374,9 +384,27 @@ void drawScreen(const ControlPacket &packet) {
   if (millis() - lastScreenMs < 100) return;
   lastScreenMs = millis();
 
-  tft.fillScreen(ST77XX_BLACK);
-  tft.setTextColor(ST77XX_WHITE);
+  // Read telemetry under mutex to avoid torn reads
+  TelemetryPacket telCopy;
+  bool telFresh;
+  portENTER_CRITICAL(&telemetryMux);
+  telCopy = latestTelemetry;
+  telFresh = telemetryReady && (millis() - lastTelemetryRxMs < TELEMETRY_STALE_MS);
+  portEXIT_CRITICAL(&telemetryMux);
+
+  // Clear only the value regions instead of full screen to eliminate flicker.
+  // Row layout: 0, 18, 32, 46, 66, 80, 94, 108 — each row is ~12px tall.
+  tft.fillRect(0, 0, 128, 14, ST77XX_BLACK);     // header row
+  tft.fillRect(0, 18, 128, 12, ST77XX_BLACK);    // THR
+  tft.fillRect(0, 32, 128, 12, ST77XX_BLACK);    // STR
+  tft.fillRect(0, 46, 128, 12, ST77XX_BLACK);    // SPD + mode
+  tft.fillRect(0, 66, 128, 12, ST77XX_BLACK);    // drive/cal + TX status
+  tft.fillRect(0, 80, 128, 12, ST77XX_BLACK);    // RX telemetry row 1
+  tft.fillRect(0, 94, 128, 12, ST77XX_BLACK);    // RX telemetry row 2
+  tft.fillRect(0, 108, 128, 20, ST77XX_BLACK);   // SW + lights row
+
   tft.setTextSize(1);
+  tft.setTextColor(ST77XX_WHITE);
   tft.setCursor(0, 0);
   tft.print("RC TX");
 
@@ -407,19 +435,19 @@ void drawScreen(const ControlPacket &packet) {
   tft.setTextColor(lastSendOk ? ST77XX_GREEN : ST77XX_YELLOW);
   tft.print(lastSendOk ? "TX OK" : "WAIT");
 
-  if (telemetryReady) {
+  if (telFresh) {
     tft.setCursor(0, 80);
     tft.setTextColor(ST77XX_CYAN);
     tft.print("RX ");
-    tft.print(latestTelemetry.packetAgeMs);
+    tft.print(telCopy.packetAgeMs);
     tft.print("ms");
 
     tft.setCursor(0, 94);
     tft.print("L ");
-    tft.print(latestTelemetry.leftMotor);
+    tft.print(telCopy.leftMotor);
     tft.setCursor(64, 94);
     tft.print("R ");
-    tft.print(latestTelemetry.rightMotor);
+    tft.print(telCopy.rightMotor);
   } else {
     tft.setCursor(0, 80);
     tft.setTextColor(ST77XX_RED);
@@ -432,6 +460,9 @@ void drawScreen(const ControlPacket &packet) {
   tft.print(encoderSwitchDown ? "DOWN " : "UP   ");
   tft.print(bootButtonDown ? " B" : " -");
   tft.print(encoderButtonPressCount);
+  tft.setCursor(84, 108);
+  tft.setTextColor(lightsEnabled ? ST77XX_YELLOW : ST77XX_WHITE);
+  tft.print(lightsEnabled ? "LT" : "lt");
 }
 
 void setStatusPixel(uint8_t r, uint8_t g, uint8_t b) {
@@ -444,12 +475,17 @@ void updateStatusLed(const ControlPacket &packet) {
   if (millis() - lastUpdate < 80) return;
   lastUpdate = millis();
 
+  bool telFresh;
+  portENTER_CRITICAL(&telemetryMux);
+  telFresh = telemetryReady && (millis() - lastTelemetryRxMs < TELEMETRY_STALE_MS);
+  portEXIT_CRITICAL(&telemetryMux);
+
   if (packet.buttons & BTN_KILL) {
     uint8_t pulse = (millis() / 200) % 2 ? 80 : 8;
     setStatusPixel(pulse, 0, 0);
   } else if (!lastSendOk) {
     setStatusPixel(80, 45, 0);
-  } else if (telemetryReady) {
+  } else if (telFresh) {
     setStatusPixel(0, 70, 0);
   } else {
     setStatusPixel(0, 0, 60);
@@ -460,21 +496,32 @@ void printStatus(const ControlPacket &packet) {
   if (millis() - lastSerialMs < 1000) return;
   lastSerialMs = millis();
 
-  Serial.printf("seq=%u thr=%d steer=%d limit=%u mode=%u kill=%u tx=%s",
+  TelemetryPacket telCopy;
+  bool telFresh;
+  uint32_t telAgeMs;
+  portENTER_CRITICAL(&telemetryMux);
+  telCopy = latestTelemetry;
+  telFresh = telemetryReady && (millis() - lastTelemetryRxMs < TELEMETRY_STALE_MS);
+  telAgeMs = millis() - lastTelemetryRxMs;
+  portEXIT_CRITICAL(&telemetryMux);
+
+  Serial.printf("seq=%u thr=%d steer=%d limit=%u mode=%u kill=%u lights=%u tx=%s",
                 packet.sequence, packet.throttle, packet.steering,
-                packet.speedLimit, packet.mode, killLatched,
+                packet.speedLimit, packet.mode, killLatched, lightsEnabled,
                 lastSendOk ? "ok" : "pending/fail");
   Serial.printf(" cal=%u encSw=%u boot=%u swCount=%lu",
                 calibrationMode ? 1 : 0,
                 encoderSwitchDown ? 1 : 0,
                 bootButtonDown ? 1 : 0,
                 encoderButtonPressCount);
-  if (telemetryReady) {
+  if (telFresh) {
     Serial.printf(" rxAge=%ums left=%d right=%d batt=%umV",
-                  latestTelemetry.packetAgeMs,
-                  latestTelemetry.leftMotor,
-                  latestTelemetry.rightMotor,
-                  latestTelemetry.batteryMv);
+                  telCopy.packetAgeMs,
+                  telCopy.leftMotor,
+                  telCopy.rightMotor,
+                  telCopy.batteryMv);
+  } else {
+    Serial.printf(" telStale=%lums", telAgeMs);
   }
   Serial.println();
 }
