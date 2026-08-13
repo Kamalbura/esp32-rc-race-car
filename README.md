@@ -1,6 +1,8 @@
-# RC Race Car ESP32-S3 ESP-NOW (V6 Stable)
+# RC Race Car — ESP32-S3 ESP-NOW (V7)
 
-This repo contains the current working V6 transmitter and receiver for your RC car.
+A complete radio-control system where **both ends are custom hardware**: a handheld
+ESP32-S3 transmitter and an ESP32-S3 receiver on the car, linked by encrypted
+ESP-NOW rather than a commercial RC receiver.
 The codebase is split into Arduino IDE sketch folders. Open the folder that has
 the same name as the `.ino` file inside it.
 
@@ -21,7 +23,7 @@ the same name as the `.ino` file inside it.
 - `tests/transmitter_guided_calibration_test/transmitter_guided_calibration_test.ino`
 - `tests/transmitter_aggressive_logger_test/transmitter_aggressive_logger_test.ino`
 
-## V6 Behavior Summary
+## Link Behaviour
 
 - Secure direct ESP-NOW unicast between fixed COM3 and COM4 MAC addresses
 - Transmitter send period: `10 ms` (about 100 Hz)
@@ -35,14 +37,24 @@ the same name as the `.ino` file inside it.
   - `spdReq`
   - `spdEff` (after calibration scaling)
 
-## Current Pairing
+## Pairing and Setup
 
-| Board | Role | Port | MAC |
-| --- | --- | --- | --- |
-| ESP32-S3 transmitter | Handheld controller | `COM3` | `B4:3A:45:3F:46:BC` |
-| ESP32-S3 receiver | Car controller | `COM4` | `B4:3A:45:3F:A4:E8` |
+Each sketch folder needs a `secrets.h` holding the peer MAC and the shared keys.
+It is gitignored; copy the example and fill it in:
 
-Both sides use encrypted ESP-NOW with shared PMK and LMK in code.
+```bash
+cp transmitter_code/secrets.h.example transmitter_code/secrets.h
+cp receiver_code_advanced_mpu/secrets.h.example receiver_code_advanced_mpu/secrets.h
+# repeat for any test sketch you intend to flash
+```
+
+| Board | Role | Port |
+| --- | --- | --- |
+| ESP32-S3 transmitter | Handheld controller | `COM3` |
+| ESP32-S3 receiver | Car controller | `COM4` |
+
+Find a board's MAC by calling `WiFi.macAddress()` after `WiFi.mode(WIFI_STA)`.
+Both ends must use identical PMK and LMK, and the same `ESPNOW_CHANNEL`.
 
 ## Quick Bring-Up
 
@@ -52,7 +64,7 @@ Both sides use encrypted ESP-NOW with shared PMK and LMK in code.
 4. Confirm receiver prints link activity.
 5. Test controls with wheels off the ground first.
 
-## Transmitter Controls (V6)
+## Transmitter Controls
 
 - Encoder or BOOT long press: toggle kill
 - Encoder or BOOT single short press: toggle lights
@@ -64,7 +76,7 @@ Notes:
 - Do not hold BOOT during reset or power-up.
 - In calibration mode, full speed knob range is scaled into safe half output range.
 
-## Transmitter Axis Mapping (Current V6)
+## Transmitter Axis Mapping
 
 - `A0` -> steering axis
 - `A1` -> throttle axis
@@ -214,6 +226,24 @@ Use `tests/espnow_transmitter_test` with `tests/espnow_receiver_test` to validat
 - ACK return path
 - sequence and missed packet counters
 
+## V7 Steering Model
+
+Steering authority scales with throttle, and the command is slew-limited rather
+than applied instantly:
+
+| Setting | Value | Effect |
+| --- | --- | --- |
+| `STEERING_GAIN_LOW_SPEED` | `1.10` | More authority for tight low-speed turns |
+| `STEERING_GAIN_HIGH_SPEED` | `0.45` | Reduced authority at speed for stability |
+| `STEERING_ENGAGE_RATE_PER_SEC` | `1.80` | Turn-in rate, scaled down further by throttle |
+| `STEERING_RELEASE_RATE_PER_SEC` | `3.50` | Faster release than engagement, so recovery is quick |
+| `STRAIGHT_ASSIST_STEER_WINDOW` | `0.10` | Deadband treated as straight-ahead |
+| `STALL_GUARD_THROTTLE_MIN` | `0.30` | Below this throttle, apply the floor PWM |
+| `STALL_GUARD_MIN_PWM` | `55` | Minimum duty that actually turns the motors |
+
+Engagement is deliberately slower than release: turn-in is smoothed to avoid
+snap, while straightening out stays responsive.
+
 ## Drive Safety
 
 Receiver ramp settings:
@@ -249,4 +279,4 @@ Latest compile sizes (approx):
 - `receiver_code`: ~53%
 - tests: all compile without errors
 
-This README tracks the current V6 code behavior as committed in this workspace.
+This README tracks V7 behaviour as committed in this repository.

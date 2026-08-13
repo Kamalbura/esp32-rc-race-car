@@ -1,0 +1,14 @@
+# ESP-NOW pairing keys and peer MACs - copy secrets.h.example to secrets.h
+secrets.h
+
+# Arduino build output
+build/
+*.bin
+*.elf
+*.map
+
+# New calibration captures. One reference run is committed on purpose so the
+# calibration workflow is reproducible without hardware.
+calibration/logs/*
+!calibration/logs/transmitter_aggressive_20260416_031819.csv
+!calibration/logs/transmitter_aggressive_20260416_031819.json

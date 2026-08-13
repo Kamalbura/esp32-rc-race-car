@@ -14,17 +14,8 @@
 #define FAILSAFE_MS 120
 #define RC_PACKET_VERSION 1
 
-uint8_t TRANSMITTER_MAC[6] = {0xB4, 0x3A, 0x45, 0x3F, 0x46, 0xBC};
+#include "secrets.h"
 
-const uint8_t ESPNOW_PMK[16] = {
-  0x52, 0x43, 0x52, 0x41, 0x43, 0x45, 0x50, 0x4D,
-  0x4B, 0x32, 0x30, 0x32, 0x36, 0x30, 0x34, 0x15
-};
-
-const uint8_t ESPNOW_LMK[16] = {
-  0x42, 0x54, 0x53, 0x45, 0x53, 0x50, 0x4E, 0x4F,
-  0x57, 0x52, 0x41, 0x57, 0x41, 0x44, 0x43, 0x31
-};
 
 /* ================= MPU6050 CONFIG ================= */
 #define MPU_SDA_PIN 1
@@ -67,6 +58,18 @@ const bool RIGHT_MOTOR_INVERT = false;
 #define MOTOR_REVERSE_BRAKE_PWM_PER_SEC 1500.0f
 #define CALIBRATION_SPEED_SCALE 0.5f
 #define STEERING_INPUT_SIGN -1.0f
+
+// Steering behavior:
+// - More steering authority at low throttle for tighter low-speed turns.
+// - Reduced steering authority at high throttle for stability.
+// - Time-based slew for smooth turn engagement (less snap).
+#define STEERING_GAIN_LOW_SPEED 1.10f
+#define STEERING_GAIN_HIGH_SPEED 0.45f
+#define STEERING_ENGAGE_RATE_PER_SEC 1.80f
+#define STEERING_RELEASE_RATE_PER_SEC 3.50f
+#define STRAIGHT_ASSIST_STEER_WINDOW 0.10f
+#define STALL_GUARD_THROTTLE_MIN 0.30f
+#define STALL_GUARD_MIN_PWM 55
 
 /* ================= LIGHTS ================= */
 #define PIXEL_PIN 8
@@ -127,6 +130,8 @@ uint32_t lastMpuMs = 0;
 uint32_t lastMotorRampMs = 0;
 bool turnTestActive = false;
 volatile uint32_t telemetrySendErrors = 0;
+float filteredSteering = 0.0f;
+uint32_t lastSteeringFilterMs = 0;
 
 uint16_t crc16Ccitt(const uint8_t *data, size_t len) {
   uint16_t crc = 0xFFFF;
@@ -289,6 +294,28 @@ void updateMotorOutputs(int targetLeft, int targetRight) {
   lastRightCommand = (int16_t)lroundf(currentRightPwm);
   drive(leftMotor, lastLeftCommand, LEFT_MOTOR_INVERT);
   drive(rightMotor, lastRightCommand, RIGHT_MOTOR_INVERT);
+}
+
+float applySteeringRateLimit(float targetSteering, float throttleAbs) {
+  uint32_t now = millis();
+  float dt = lastSteeringFilterMs == 0 ? 0.02f : (now - lastSteeringFilterMs) / 1000.0f;
+  lastSteeringFilterMs = now;
+  if (dt > 0.1f) dt = 0.02f;
+
+  // Steering command growth is slower than release; high speed slows engagement a bit more.
+  bool engaging = fabs(targetSteering) > fabs(filteredSteering);
+  float engageRate = STEERING_ENGAGE_RATE_PER_SEC * (1.0f - 0.35f * throttleAbs);
+  if (engageRate < 1.0f) engageRate = 1.0f;
+  float rate = engaging ? engageRate : STEERING_RELEASE_RATE_PER_SEC;
+
+  float maxStep = rate * dt;
+  float delta = targetSteering - filteredSteering;
+  if (fabs(delta) <= maxStep) {
+    filteredSteering = targetSteering;
+  } else {
+    filteredSteering += (delta > 0.0f ? maxStep : -maxStep);
+  }
+  return filteredSteering;
 }
 
 void setupMpu() {
@@ -660,6 +687,8 @@ void loop() {
 
   if (kill) {
     stopMotors();
+    filteredSteering = 0.0f;
+    lastSteeringFilterMs = 0;
   } else {
     float throttle = packet.throttle / 1000.0f;
     float steering = (packet.steering / 1000.0f) * STEERING_INPUT_SIGN;
@@ -671,6 +700,22 @@ void loop() {
 
     if (fabs(throttle) < MOTOR_DEADBAND) throttle = 0;
     if (fabs(steering) < MOTOR_DEADBAND) steering = 0;
+
+    // Speed-aware steering: sharp at low speed, stable at high speed.
+    float throttleAbs = fabs(throttle);
+    float speedFactor = throttleAbs * throttleAbs;  // smooth nonlinear blend
+    float steerGain = STEERING_GAIN_LOW_SPEED +
+                      (STEERING_GAIN_HIGH_SPEED - STEERING_GAIN_LOW_SPEED) * speedFactor;
+    float steerTarget = constrain(steering * steerGain, -1.0f, 1.0f);
+    steering = applySteeringRateLimit(steerTarget, throttleAbs);
+
+    // Keep straight reverse/forward stable when stick is near-center on steering.
+    // This avoids one-motor crawl caused by small steering bias + wheel stiction.
+    bool straightAssist = (throttleAbs >= STALL_GUARD_THROTTLE_MIN) &&
+                          (fabs(steering) <= STRAIGHT_ASSIST_STEER_WINDOW);
+    if (straightAssist) {
+      steering = 0.0f;
+    }
 
 #if ENABLE_YAW_ASSIST
     if (mpuReady && fabs(throttle) > 0.10f && fabs(steering) > 0.05f) {
@@ -691,6 +736,12 @@ void loop() {
 
     int targetLeft = (int)(left * limit * 255.0f);
     int targetRight = (int)(right * limit * 255.0f);
+    if (straightAssist) {
+      int minPwm = (int)lroundf(STALL_GUARD_MIN_PWM * limit);
+      if (minPwm < 20) minPwm = 20;
+      if (abs(targetLeft) < minPwm) targetLeft = (targetLeft >= 0) ? minPwm : -minPwm;
+      if (abs(targetRight) < minPwm) targetRight = (targetRight >= 0) ? minPwm : -minPwm;
+    }
     updateMotorOutputs(targetLeft, targetRight);
   }
 

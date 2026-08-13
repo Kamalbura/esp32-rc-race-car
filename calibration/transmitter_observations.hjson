@@ -3,8 +3,8 @@
   // tests/transmitter_guided_calibration_test.
   //
   // Current hardware roles:
-  // COM3: transmitter, MAC B4:3A:45:3F:46:BC
-  // COM4: receiver, MAC B4:3A:45:3F:A4:E8
+  // COM3: transmitter (MAC configured in secrets.h)
+  // COM4: receiver (MAC configured in secrets.h)
   //
   // MPU6050 car mounting target:
   // +X points to the front of the car.
