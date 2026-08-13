@@ -301,8 +301,8 @@ git clone https://github.com/Kamalbura/esp32-rc-race-car.git
 
 2. Create the pairing configuration for each sketch you intend to flash:
 ```bash
-cp transmitter_code/secrets.h.example           transmitter_code/secrets.h
-cp receiver_code_advanced_mpu/secrets.h.example receiver_code_advanced_mpu/secrets.h
+cp transmitter_code/secrets.example.h           transmitter_code/secrets.h
+cp receiver_code_advanced_mpu/secrets.example.h receiver_code_advanced_mpu/secrets.h
 ```
 
 3. Fill in each `secrets.h` with the peer MAC address and the shared PMK/LMK. Find a board's MAC with `WiFi.macAddress()` after `WiFi.mode(WIFI_STA)`. **Both ends must use identical keys and the same channel**, or the link will not come up.

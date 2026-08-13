@@ -14,8 +14,9 @@
 #define FAILSAFE_MS 120
 #define RC_PACKET_VERSION 1
 
+// ESP-NOW peer MAC + PMK/LMK live in secrets.h (gitignored).
+// Copy secrets.example.h -> secrets.h in this folder and set your values.
 #include "secrets.h"
-
 
 /* ================= MPU6050 CONFIG ================= */
 #define MPU_SDA_PIN 1

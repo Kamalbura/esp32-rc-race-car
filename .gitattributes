@@ -1,0 +1,17 @@
+# Normalize line endings: LF in the repo, checked out native on each OS.
+* text=auto
+
+# Firmware / source and docs are always LF.
+*.ino   text eol=lf
+*.h     text eol=lf
+*.cpp   text eol=lf
+*.c     text eol=lf
+*.py    text eol=lf
+*.md    text eol=lf
+*.yml   text eol=lf
+*.yaml  text eol=lf
+*.json  text eol=lf
+*.hjson text eol=lf
+
+# Data logs are treated as text but left alone.
+*.csv   text

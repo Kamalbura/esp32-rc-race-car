@@ -14,10 +14,12 @@
 /* ================= RADIO CONFIG ================= */
 #define ESPNOW_CHANNEL 6
 #define SEND_INTERVAL_MS 10
+#define SEND_CALLBACK_TIMEOUT_MS 50
 #define TELEMETRY_STALE_MS 500
 
+// ESP-NOW peer MAC + PMK/LMK live in secrets.h (gitignored).
+// Copy secrets.example.h -> secrets.h in this folder and set your values.
 #include "secrets.h"
-
 
 /* ================= TRANSMITTER PIN CONFIG ================= */
 #define I2C_SDA_PIN 8
@@ -851,24 +853,49 @@ void displayTask(void *param) {
 }
 
 void loop() {
+  // Poll buttons/encoder every iteration so the UI stays responsive.
   updateEncoder();
-  ControlPacket packet = buildPacket();
 
-  if (sendReady && millis() - lastSendMs >= SEND_INTERVAL_MS) {
+  // Hold the last built packet so the display task + status LED always have
+  // valid data between sends. ADC reads now happen only on the send cadence.
+  static ControlPacket packet = {};
+
+  uint32_t now = millis();
+
+  // Send-callback watchdog: esp_now_send clears sendReady until onDataSent
+  // fires. If that callback is ever lost under RF stress, don't latch the
+  // send loop off forever — recover after a bounded wait.
+  if (!sendReady && now - lastSendMs > SEND_CALLBACK_TIMEOUT_MS) {
+    sendReady = true;
+    lastSendOk = false;
+  }
+
+  if (sendReady && now - lastSendMs >= SEND_INTERVAL_MS) {
+    lastSendMs = now;
+
+    // Build (and therefore read the ADS1115) only at the 100 Hz send rate,
+    // not every loop iteration. This drops I2C/ADC work ~4x.
+    packet = buildPacket();
+
     sendReady = false;
-    lastSendMs = millis();
     esp_err_t result = esp_now_send(RECEIVER_MAC, (const uint8_t *)&packet, sizeof(packet));
     if (result != ESP_OK) {
       sendReady = true;
       lastSendOk = false;
     }
+
+    // Share latest packet with Core 0 display task (fast ~20 byte copy)
+    portENTER_CRITICAL(&displayMux);
+    lastBuiltPacket = packet;
+    portEXIT_CRITICAL(&displayMux);
   }
 
-  // Share latest packet with Core 0 display task (fast ~20 byte copy)
-  portENTER_CRITICAL(&displayMux);
-  lastBuiltPacket = packet;
-  portEXIT_CRITICAL(&displayMux);
-
-  // Status LED stays on Core 1 for immediate visual feedback
+  // Status LED stays on Core 1 for immediate visual feedback (self rate-limited)
   updateStatusLed(packet);
+
+  // Yield ~1 ms so the Core 1 IDLE task can run. Without this the loop spins
+  // at 100% and the SoC never light-sleeps between sends, which kept the
+  // transmitter warm. Still ~10 iterations per 10 ms send window, so encoder
+  // and button polling stay responsive.
+  vTaskDelay(1);
 }

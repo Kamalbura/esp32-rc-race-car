@@ -33,7 +33,7 @@ ESP-NOW encryption is enabled with a Primary Master Key and a Local Master Key:
 | LMK | 16 bytes | Encrypts payloads for this specific peer |
 
 Both ends must carry identical keys. They live in a gitignored `secrets.h` in
-each sketch folder — see [`secrets.h.example`](../transmitter_code/secrets.h.example).
+each sketch folder — see [`secrets.example.h`](../transmitter_code/secrets.example.h).
 Transmission is **unicast to a fixed MAC**, not broadcast, so an unpaired
 listener sees encrypted frames addressed elsewhere.
 

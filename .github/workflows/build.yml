@@ -1,0 +1,59 @@
+name: build
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  compile:
+    name: Compile all sketches (ESP32-S3)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install arduino-cli
+        uses: arduino/setup-arduino-cli@v2
+
+      - name: Install ESP32 core
+        run: |
+          arduino-cli config init --additional-urls https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+          arduino-cli core update-index
+          arduino-cli core install esp32:esp32
+
+      - name: Install libraries
+        run: |
+          arduino-cli lib install \
+            "Adafruit ADS1X15" \
+            "Adafruit GFX Library" \
+            "Adafruit ST7735 and ST7789 Library" \
+            "Adafruit NeoPixel" \
+            "Adafruit MPU6050" \
+            "Adafruit Unified Sensor" \
+            "Adafruit BusIO"
+
+      - name: Provide secrets.h from templates
+        run: |
+          # CI compiles against the zero-value templates; real keys never exist in CI.
+          find . -name secrets.example.h -execdir cp {} secrets.h \;
+
+      - name: Compile every standard sketch
+        run: |
+          set -euo pipefail
+          FQBN="esp32:esp32:esp32s3"
+          # A valid Arduino sketch lives in a folder whose name matches the .ino.
+          # Skip the legacy reference sketch and the stray root snapshot.
+          while IFS= read -r ino; do
+            dir=$(dirname "$ino")
+            base=$(basename "$ino" .ino)
+            if [ "$(basename "$dir")" != "$base" ]; then
+              echo "::notice::Skipping non-standard sketch layout: $ino"
+              continue
+            fi
+            if [ "$base" = "legacy_flysky_ibus" ]; then
+              echo "::notice::Skipping legacy reference sketch: $ino"
+              continue
+            fi
+            echo "== Compiling $dir =="
+            arduino-cli compile --fqbn "$FQBN" "$dir"
+          done < <(find . -name '*.ino' | sort)
