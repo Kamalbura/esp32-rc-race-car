@@ -2,6 +2,7 @@
 #include <WiFi.h>
 #include <esp_now.h>
 #include <esp_wifi.h>
+#include <esp_system.h>
 #include <esp_idf_version.h>
 #include <Wire.h>
 #include <SPI.h>
@@ -49,7 +50,7 @@
 #define BUILTIN_RGB_BRIGHTNESS 24
 
 /* ================= PACKET FORMAT ================= */
-#define RC_PACKET_VERSION 1
+#define RC_PACKET_VERSION 2
 #define BTN_KILL 0x01
 #define BTN_LIGHTS 0x02
 #define BTN_AUX1 0x04
@@ -75,6 +76,7 @@
 
 struct __attribute__((packed)) ControlPacket {
   uint8_t version;
+  uint32_t sessionId;
   uint16_t sequence;
   int16_t throttle;     // -1000 reverse, 0 stop, +1000 forward
   int16_t steering;     // -1000 left, 0 center, +1000 right
@@ -88,6 +90,7 @@ struct __attribute__((packed)) ControlPacket {
 
 struct __attribute__((packed)) TelemetryPacket {
   uint8_t version;
+  uint32_t sessionId;
   uint16_t sequenceAck;
   uint16_t batteryMv;
   int16_t leftMotor;
@@ -97,7 +100,7 @@ struct __attribute__((packed)) TelemetryPacket {
   uint16_t crc;
 };
 
-static_assert(sizeof(ControlPacket) <= 250, "ESP-NOW v1 packet must stay <= 250 bytes");
+static_assert(sizeof(ControlPacket) <= 250, "ESP-NOW packet must stay <= 250 bytes");
 
 enum CalStep : uint8_t {
   CAL_CENTER = 0,
@@ -179,8 +182,11 @@ portMUX_TYPE telemetryMux = portMUX_INITIALIZER_UNLOCKED;
 TelemetryPacket latestTelemetry = {};
 bool telemetryReady = false;
 uint32_t lastTelemetryRxMs = 0;
+bool haveTelemetrySequence = false;
+uint16_t lastTelemetrySequence = 0;
 
 uint16_t sequenceNumber = 0;
+uint32_t sessionId = 0;
 bool killLatched = true;
 bool lightsEnabled = true;
 bool encoderSwitchDown = false;
@@ -308,6 +314,10 @@ uint16_t telemetryCrc(const TelemetryPacket &packet) {
   return crc16Ccitt((const uint8_t *)&copy, sizeof(copy));
 }
 
+bool isNewerSequence(uint16_t candidate, uint16_t previous) {
+  return static_cast<int16_t>(candidate - previous) > 0;
+}
+
 bool isBroadcastMac(const uint8_t *mac) {
   for (uint8_t i = 0; i < 6; i++) {
     if (mac[i] != 0xFF) return false;
@@ -347,20 +357,29 @@ void onDataSent(const uint8_t *mac, esp_now_send_status_t status) {
 
 #if ESP_IDF_VERSION_MAJOR >= 5
 void onTelemetryRecv(const esp_now_recv_info_t *info, const uint8_t *data, int len) {
-  (void)info;
+  if (info == nullptr || info->src_addr == nullptr ||
+      data == nullptr || memcmp(info->src_addr, RECEIVER_MAC, 6) != 0) return;
 #else
 void onTelemetryRecv(const uint8_t *mac, const uint8_t *data, int len) {
-  (void)mac;
+  if (mac == nullptr || data == nullptr || memcmp(mac, RECEIVER_MAC, 6) != 0) return;
 #endif
   if (len != sizeof(TelemetryPacket)) return;
 
   TelemetryPacket packet;
   memcpy(&packet, data, sizeof(packet));
   if (packet.version != RC_PACKET_VERSION) return;
+  if (packet.sessionId != sessionId) return;
   if (telemetryCrc(packet) != packet.crc) return;
 
   portENTER_CRITICAL(&telemetryMux);
+  if (haveTelemetrySequence &&
+      !isNewerSequence(packet.sequenceAck, lastTelemetrySequence)) {
+    portEXIT_CRITICAL(&telemetryMux);
+    return;
+  }
   latestTelemetry = packet;
+  lastTelemetrySequence = packet.sequenceAck;
+  haveTelemetrySequence = true;
   telemetryReady = true;
   lastTelemetryRxMs = millis();
   portEXIT_CRITICAL(&telemetryMux);
@@ -562,6 +581,7 @@ uint8_t modeFromAxis(int16_t axis) {
 ControlPacket buildPacket() {
   ControlPacket packet = {};
   packet.version = RC_PACKET_VERSION;
+  packet.sessionId = sessionId;
   packet.sequence = ++sequenceNumber;
 
   // Always read throttle + steering at full rate (2 ADC reads ~2.3ms).
@@ -822,6 +842,8 @@ void setup() {
   tft.fillScreen(ST77XX_BLACK);
 
   setupEspNow();
+  sessionId = esp_random();
+  if (sessionId == 0) sessionId = 1;
 
   Serial.print("Transmitter MAC: ");
   Serial.println(WiFi.macAddress());

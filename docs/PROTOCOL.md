@@ -45,7 +45,8 @@ Sent every **10 ms (100 Hz)**.
 
 ```c
 struct __attribute__((packed)) ControlPacket {
-  uint8_t  version;      // RC_PACKET_VERSION, currently 1
+  uint8_t  version;      // RC_PACKET_VERSION, currently 2
+  uint32_t sessionId;    // random transmitter boot session
   uint16_t sequence;     // increments per packet, wraps at 65535
   int16_t  throttle;     // -1000 reverse .. 0 stop .. +1000 forward
   int16_t  steering;     // -1000 left .. 0 centre .. +1000 right
@@ -77,6 +78,7 @@ mismatch between the two boards.
 ```c
 struct __attribute__((packed)) TelemetryPacket {
   uint8_t  version;
+  uint32_t sessionId;    // echoes the active control session
   uint16_t sequenceAck;  // last control sequence the receiver acted on
   uint16_t batteryMv;    // pack voltage in millivolts
   int16_t  leftMotor;    // effective PWM after ramping and limits
@@ -87,9 +89,14 @@ struct __attribute__((packed)) TelemetryPacket {
 };
 ```
 
-`sequenceAck` echoing the control `sequence` is what makes packet loss
-measurable: the transmitter compares what it sent against what was
-acknowledged, and reports missed counts. `leftMotor` and `rightMotor` report
+`sessionId` changes on every transmitter boot. The receiver rejects a session
+change while the current link is still fresh, and only adopts a new session
+after the 120 ms failsafe window and a safe kill/centered start packet. The
+receiver persists the accepted session ID in NVS and requires the same safe
+start after receiver boot. This prevents a delayed packet from an earlier
+transmitter session from reviving stale throttle. `sequenceAck` echoing the
+control `sequence` is what makes packet loss measurable. `leftMotor` and
+`rightMotor` report
 the **effective** PWM after ramping, speed limit and calibration scaling, so
 the display distinguishes requested (`spdReq`) from actual (`spdEff`).
 

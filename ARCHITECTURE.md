@@ -99,7 +99,8 @@ ESP-NOW provides the crypto; the firmware just supplies keys.
   public repo — see Configuration.
 - **Trust model — be honest about it:** this is a **single static symmetric key pair** shared by
   both boards. It defeats a casual sniffer. It is **not** a defense against anyone who has your
-  `secrets.h`, and there is no key rotation or per-session handshake.
+  `secrets.h`; the packet also carries a random transmitter boot session ID, but there is no
+  key rotation or cryptographic session handshake.
 
 Encryption (does the frame get decrypted?) is distinct from **authentication of intent**: even a
 correctly-decrypted frame is still checked for source MAC, version, length, and CRC before it moves
@@ -112,11 +113,12 @@ a motor (see Communication + Safety).
 Two fixed-layout, versioned, CRC-protected structs. Both are `__attribute__((packed))` so the byte
 layout is identical on both nodes regardless of compiler padding.
 
-### ControlPacket (transmitter → receiver, 17 bytes)
+### ControlPacket (transmitter → receiver, 21 bytes)
 
 | Field | Type | Meaning |
 | --- | --- | --- |
-| `version` | uint8 | `RC_PACKET_VERSION` (1); rejected if mismatched |
+| `version` | uint8 | `RC_PACKET_VERSION` (2); rejected if mismatched |
+| `sessionId` | uint32 | Random transmitter boot session; prevents delayed packets from reviving an old drive command |
 | `sequence` | uint16 | Monotonic counter, one per send |
 | `throttle` | int16 | −1000 reverse … 0 … +1000 forward |
 | `steering` | int16 | −1000 left … 0 … +1000 right |
@@ -126,11 +128,12 @@ layout is identical on both nodes regardless of compiler padding.
 | `buttons` | uint8 | Bit mask: `BTN_KILL` / `BTN_LIGHTS` / `BTN_CALIBRATION` |
 | `crc` | uint16 | CRC-16/CCITT over the struct with `crc` zeroed |
 
-### TelemetryPacket (receiver → transmitter, 14 bytes)
+### TelemetryPacket (receiver → transmitter, 18 bytes)
 
 | Field | Type | Meaning |
 | --- | --- | --- |
 | `version` | uint8 | Packet version |
+| `sessionId` | uint32 | Echoes the active transmitter session |
 | `sequenceAck` | uint16 | Echoes the last `ControlPacket.sequence` seen |
 | `batteryMv` | uint16 | Battery mV — **currently always 0 (unimplemented)** |
 | `leftMotor` / `rightMotor` | int16 | Effective PWM command applied |
@@ -142,8 +145,13 @@ layout is identical on both nodes regardless of compiler padding.
 
 - **CRC:** `crc16Ccitt()` (init `0xFFFF`, poly `0x1021`), computed with the `crc` field set to 0.
   Identical routine on both sides. Any mismatch → packet dropped.
-- **Validation order on receive:** source MAC → length == `sizeof(struct)` → `version` → CRC. Only
-  then is the packet copied into shared state under a mutex.
+- **Validation order on receive:** source MAC → length == `sizeof(struct)` → `version` → CRC →
+  session ID → monotonic sequence. Only then is the packet copied into shared state under a mutex.
+  The transmitter applies the same source-MAC and session-ID gates to telemetry. A receiver accepts
+  a new session ID only after the failsafe window has expired and the packet has kill asserted
+  with centered controls. The receiver persists the last session ID in NVS and requires the same
+  safe start after receiver boot; delayed packets from an older session cannot revive stale
+  throttle.
 - **Send cadence:** transmitter sends every `SEND_INTERVAL_MS` (10 ms ≈ 100 Hz), gated on the
   previous TX-complete callback (`sendReady`) with a 50 ms watchdog so a lost callback can't stall
   the link. Receiver sends telemetry every 100 ms (≈ 10 Hz).
@@ -234,6 +242,10 @@ Layered, fail-closed:
 5. **Turn-test lockout** — an active MPU turn test forces `kill` so the normal mix can't fight it.
 6. **Ramp limits** — even a valid command can't step-change PWM; kill/failsafe bypass the ramp to
    stop *immediately*.
+7. **Service stop latch** — receiver diagnostics, gyro calibration, and turn tests leave motors
+   stopped until the operator explicitly arms with `a` while a fresh centered control packet is
+   present. A turn test also aborts immediately if the control link expires or the transmitter
+   kill bit becomes active.
 
 ---
 

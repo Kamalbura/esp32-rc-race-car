@@ -5,11 +5,14 @@
 #include <esp_idf_version.h>
 #include <esp_arduino_version.h>
 #include <Adafruit_NeoPixel.h>
+#include <Preferences.h>
 
 /* ================= RADIO CONFIG ================= */
 #define ESPNOW_CHANNEL 6
 #define FAILSAFE_MS 120
-#define RC_PACKET_VERSION 1
+#define RC_PACKET_VERSION 2
+#define SESSION_STORE_NS "rcstate"
+#define SESSION_STORE_KEY "session"
 
 // ESP-NOW peer MAC + PMK/LMK live in secrets.h (gitignored).
 // Copy secrets.example.h -> secrets.h in this folder and set your values.
@@ -72,6 +75,7 @@ const float BATTERY_DIVIDER_RATIO = 1.0f;
 
 struct __attribute__((packed)) ControlPacket {
   uint8_t version;
+  uint32_t sessionId;
   uint16_t sequence;
   int16_t throttle;
   int16_t steering;
@@ -85,6 +89,7 @@ struct __attribute__((packed)) ControlPacket {
 
 struct __attribute__((packed)) TelemetryPacket {
   uint8_t version;
+  uint32_t sessionId;
   uint16_t sequenceAck;
   uint16_t batteryMv;
   int16_t leftMotor;
@@ -98,6 +103,12 @@ portMUX_TYPE packetMux = portMUX_INITIALIZER_UNLOCKED;
 ControlPacket latestPacket = {};
 uint32_t lastPacketMs = 0;
 bool packetValid = false;
+bool haveSequence = false;
+uint16_t lastAcceptedSequence = 0;
+bool haveSession = false;
+uint32_t activeSessionId = 0;
+volatile bool sessionPersistPending = false;
+volatile uint32_t pendingSessionId = 0;
 
 uint8_t controllerMac[6] = {0};
 bool controllerKnown = false;
@@ -143,6 +154,57 @@ void printMac(const uint8_t *mac) {
 
 bool sameMac(const uint8_t *a, const uint8_t *b) {
   return memcmp(a, b, 6) == 0;
+}
+
+bool isNewerSequence(uint16_t candidate, uint16_t previous) {
+  return static_cast<int16_t>(candidate - previous) > 0;
+}
+
+bool safeSessionStart(const ControlPacket &packet) {
+  return (packet.buttons & BTN_KILL) &&
+         abs(packet.throttle) <= 50 && abs(packet.steering) <= 50;
+}
+
+void loadPersistedSession() {
+  Preferences prefs;
+  if (!prefs.begin(SESSION_STORE_NS, true)) {
+    Serial.println("session load skipped: nvs open");
+    return;
+  }
+  uint32_t stored = prefs.getUInt(SESSION_STORE_KEY, 0);
+  prefs.end();
+  if (stored != 0) {
+    activeSessionId = stored;
+    haveSession = true;
+  }
+}
+
+void persistPendingSession() {
+  bool pending;
+  uint32_t session;
+  portENTER_CRITICAL(&packetMux);
+  pending = sessionPersistPending;
+  session = pendingSessionId;
+  sessionPersistPending = false;
+  portEXIT_CRITICAL(&packetMux);
+  if (!pending) return;
+
+  Preferences prefs;
+  if (!prefs.begin(SESSION_STORE_NS, false)) {
+    Serial.println("session save failed: nvs open");
+    portENTER_CRITICAL(&packetMux);
+    sessionPersistPending = true;
+    portEXIT_CRITICAL(&packetMux);
+    return;
+  }
+  bool ok = prefs.putUInt(SESSION_STORE_KEY, session) == sizeof(uint32_t);
+  prefs.end();
+  if (!ok) {
+    Serial.println("session save failed: short write");
+    portENTER_CRITICAL(&packetMux);
+    sessionPersistPending = true;
+    portEXIT_CRITICAL(&packetMux);
+  }
 }
 
 void buzzerWrite(bool on) {
@@ -343,6 +405,7 @@ void sendTelemetry(const ControlPacket &packet, bool linkOk) {
 
   TelemetryPacket telemetry = {};
   telemetry.version = RC_PACKET_VERSION;
+  telemetry.sessionId = packet.sessionId;
   telemetry.sequenceAck = packet.sequence;
   telemetry.batteryMv = readBatteryMv();
   telemetry.leftMotor = lastLeftCommand;
@@ -356,10 +419,12 @@ void sendTelemetry(const ControlPacket &packet, bool linkOk) {
 
 #if ESP_IDF_VERSION_MAJOR >= 5
 void onControlRecv(const esp_now_recv_info_t *info, const uint8_t *data, int len) {
+  if (info == nullptr || info->src_addr == nullptr) return;
   const uint8_t *mac = info->src_addr;
 #else
 void onControlRecv(const uint8_t *mac, const uint8_t *data, int len) {
 #endif
+  if (mac == nullptr || data == nullptr) return;
   if (!sameMac(mac, TRANSMITTER_MAC)) return;
   if (len != sizeof(ControlPacket)) return;
 
@@ -369,7 +434,35 @@ void onControlRecv(const uint8_t *mac, const uint8_t *data, int len) {
   if (controlCrc(packet) != packet.crc) return;
 
   portENTER_CRITICAL(&packetMux);
+  bool linkExpired = !packetValid || millis() - lastPacketMs > FAILSAFE_MS;
+  if (!haveSession) {
+    if (!safeSessionStart(packet)) {
+      portEXIT_CRITICAL(&packetMux);
+      return;
+    }
+    activeSessionId = packet.sessionId;
+    haveSession = true;
+    haveSequence = false;
+  } else if (packet.sessionId != activeSessionId) {
+    if (!linkExpired || !safeSessionStart(packet)) {
+      portEXIT_CRITICAL(&packetMux);
+      return;
+    }
+    activeSessionId = packet.sessionId;
+    haveSequence = false;
+    pendingSessionId = packet.sessionId;
+    sessionPersistPending = true;
+  } else if (!packetValid && !safeSessionStart(packet)) {
+    portEXIT_CRITICAL(&packetMux);
+    return;
+  }
+  if (haveSequence && !isNewerSequence(packet.sequence, lastAcceptedSequence)) {
+    portEXIT_CRITICAL(&packetMux);
+    return;
+  }
   latestPacket = packet;
+  lastAcceptedSequence = packet.sequence;
+  haveSequence = true;
   lastPacketMs = millis();
   packetValid = true;
   portEXIT_CRITICAL(&packetMux);
@@ -432,6 +525,7 @@ void setup() {
   pinMode(BUZZER_PIN, OUTPUT);
   buzzerWrite(false);
   setupMotors();
+  loadPersistedSession();
   strip.begin();
   strip.setBrightness(100);
   strip.show();
@@ -448,6 +542,7 @@ void setup() {
 }
 
 void loop() {
+  persistPendingSession();
   ControlPacket packet;
   bool hasPacket;
   uint32_t ageMs;

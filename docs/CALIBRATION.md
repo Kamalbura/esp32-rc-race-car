@@ -13,7 +13,7 @@ Tuned from recent guided captures:
 
 | Channel | min | centre | max | invert | deadband |
 |---|---|---|---|---|---|
-| `A0` steering | 4000 | 21220 | 32000 | `true` | 500 |
+| `A0` steering | 4000 | 21220 | 32000 | `false` | 500 |
 | `A1` throttle | 4000 | 20560 | 32000 | `true` | 500 |
 | `A2` aux1 | 4000 | 21090 | 32000 | `false` | 500 |
 | `A3` aux2 / mode | 4000 | 20440 | 32000 | `false` | 500 |
