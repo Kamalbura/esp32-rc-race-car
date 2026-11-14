@@ -3,7 +3,7 @@
 ## Practical applications and maintained examples
 
 ### Takeaway
-ESP32-S3 is a credible companion-compute MCU for an RC vehicle when deterministic motor control is kept separate from best-effort camera/AI work. The maintained Espressif stack covers optimized neural kernels, DSP/Kalman filtering, TFLite Micro, wake-word/audio front ends, camera capture, and object detection.
+ESP32-S3 is a credible companion-compute MCU for an RC vehicle when deterministic motor control is kept separate from optional computation. This project has no camera or microphone in its connected hardware. The relevant Espressif capabilities here are optimized DSP/Kalman filtering, bounded sensor logging, and future small classifiers; camera and audio capabilities are out of scope.
 
 ### Cited Findings
 - Espressif's [ESP-NN](https://github.com/espressif/esp-nn) provides optimized neural-network kernels; ESP32-S3 uses assembly implementations that exploit its vector instructions. Espressif's published measurements report INT8 person detection at about 54 ms per invoke on a 240 MHz ESP32-S3 with ESP-NN (versus about 2,300 ms with reference kernels), with the tensor arena in SPIRAM.
@@ -16,7 +16,7 @@ ESP32-S3 is a credible companion-compute MCU for an RC vehicle when deterministi
 - For audio/sensor expansion, [esp-iot-solution](https://github.com/espressif/esp-iot-solution) provides Espressif-maintained drivers and examples for sensors, audio, displays, and actuators. Use ESP-IDF I2S/I2C/SPI peripherals for microphones, IMUs, ToF/range sensors, and displays, and use [ESP-DSP's Kalman example](https://github.com/espressif/esp-dsp/blob/master/examples/kalman/main/ekf_imu13states_main.cpp) for the fusion algorithm.
 
 ### Inferences
-- Good vehicle applications are: (1) wake-word or short voice command as a non-safety control channel; (2) camera-based obstacle/person warning at low speed; (3) IMU + wheel/command telemetry fusion for yaw-rate assist, slip/stall detection, and smoother display telemetry; (4) audio FFT for motor/gearbox fault indicators; and (5) local data logging and post-run model collection.
+- Good applications for this hardware are: (1) timestamped MPU6050 history and calibration capture; (2) IMU + command telemetry fusion for yaw-rate assist, slip/stall detection, and smoother display telemetry; (3) bounded local data logging and post-run tuning; and (4) small non-safety anomaly or classification experiments.
 - Avoid using camera inference as the sole collision-avoidance or stop mechanism. A watchdog, radio timeout, current/stall guard, and obstacle sensor should be independent and able to force motor PWM to zero.
 
 ### Gaps
@@ -36,7 +36,7 @@ PSRAM is a large, cached working store, not deterministic real-time RAM. Keep th
 - The [ESP-IDF XIP-from-PSRAM example](https://github.com/espressif/esp-idf/tree/master/examples/system/xip_from_psram) demonstrates optional placement of instruction/rodata in PSRAM, but this changes cache and latency assumptions and should not be used for a hard real-time safety path without measurement.
 
 ### Inferences
-- Suggested placement for this RC vehicle: IRAM/DRAM for PWM update/failsafe, radio timeout bookkeeping, watchdog service, encoder/IMU interrupt shims, and the latest safety command; internal DMA-capable buffers for peripherals that require them; PSRAM for TFLite tensor arena, JPEG frame buffers, AFE/WakeNet working memory, large audio ring buffers, telemetry history, and noncritical UI assets; flash for firmware and model files loaded at startup.
+- Suggested placement for this RC vehicle: IRAM/DRAM for PWM update/failsafe, radio timeout bookkeeping, watchdog service, the latest MPU6050 sample, filter state, and latest safety command; internal DMA-capable buffers for peripherals that require them; PSRAM for a bounded IMU ring buffer, calibration captures, telemetry history, diagnostic logs, and optional model arenas; flash for firmware and model files loaded at startup.
 - Use capability-aware allocation (`MALLOC_CAP_INTERNAL`, `MALLOC_CAP_DMA`, and `MALLOC_CAP_SPIRAM`) and inspect the map/heap at runtime. Do not pass PSRAM pointers to an ISR that may run with cache disabled.
 - Partition work: a high-priority control task (for example 100–500 Hz) computes a bounded motor command from the latest validated inputs; camera/audio/AI tasks publish timestamped observations into queues. AI may drop frames rather than block the control task.
 
